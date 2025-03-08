@@ -3,9 +3,26 @@ name = "near-pytest"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.9"
-dependencies = []
+requires-python = ">=3.11"
+dependencies = [
+    "nearc>=0.6.0",
+    "py-near>=1.1.50",
+    "pynacl>=1.5.0",
+    "pytest>=8.3.5",
+    "requests>=2.32.3",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "ruff>=0.9.10",
+    "types-requests>=2.32.0.20250306",
+]
+
+[[tool.mypy.overrides]]
+module = ["py_near.account", "py_near.dapps.core", "nearc", "py_near.constants", "nearc.builder"]
+follow_untyped_imports = true

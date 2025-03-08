@@ -8,13 +8,7 @@ from ..core.sandbox_manager import SandboxManager
 from ..core.contract_manager import ContractManager
 from ..core.account import NearAccount
 from ..core.contract_proxy import ContractProxy
-
-# For future RPC client implementation
-class MockRPCClient:
-    """Temporary mock RPC client for development."""
-    
-    def __init__(self, sandbox_manager):
-        self.sandbox_manager = sandbox_manager
+from ..core.sync_client import SyncNearClient
 
 class NearTestCase:
     """Base class for NEAR contract test cases."""
@@ -89,7 +83,8 @@ class NearTestCase:
         """Reset the sandbox state."""
         self.get_sandbox_manager().reset_state()
         # After reset, we need to reconnect the root account
-        type(self)._root_account = self._create_root_account()
+        self.__class__._rpc_client = self._create_rpc_client()
+        self.__class__._root_account = self._create_root_account()
     
     def create_account(self, name: str, initial_balance: Optional[int] = None) -> NearAccount:
         """
@@ -103,17 +98,13 @@ class NearTestCase:
         Returns:
             NearAccount: The created account
         """
-        # Generate a unique name to avoid conflicts
-        unique_id = str(uuid.uuid4())[:8]
-        account_id = f"{name}-{unique_id}.test"
-        
         # Use the root account to create the new account
         root = self.get_root_account()
         
-        # Create the account (simplified for now - actual implementation will use RPC)
+        # Create the account
         account = root.create_subaccount(name, initial_balance)
         
-        # Store in test accounts dictionary
+        # Store in test accounts dictionary for reference
         self._test_accounts[name] = account
         
         return account
@@ -148,14 +139,22 @@ class NearTestCase:
     @classmethod
     def _create_rpc_client(cls):
         """Create an RPC client for interacting with the sandbox."""
-        # This will be replaced with a real RPC client implementation
-        # For now, we use a mock
-        return MockRPCClient(cls.get_sandbox_manager())
+        sandbox_manager = cls.get_sandbox_manager()
+        rpc_endpoint = sandbox_manager.rpc_endpoint()
+        
+        # For sandbox, we use test.near as the master account
+        # In a real implementation, we would need to load the key from the sandbox
+        # For now, we use a placeholder key which would be replaced with the actual key
+        master_account_id = "test.near"
+        
+        # This is a placeholder - in a real implementation, we'd get the actual key
+        # from the sandbox's validator_key.json
+        master_private_key = "ed25519:3D4YudUahN1nawWogh8pALmEyzGnEfi4qnwEDenACbv9HbTYbgKZ5JFpADrLZEP7AwVcUWRmwwxQ9tLVHxhFGzXt"
+        
+        return SyncNearClient(rpc_endpoint, master_account_id, master_private_key)
     
     @classmethod
     def _create_root_account(cls):
         """Create or connect to the root account in the sandbox."""
-        # In a real implementation, this would connect to the test.near account
-        # in the sandbox with its default key
-        # For now, we create a mock account
-        return NearAccount("test.near", cls._rpc_client)
+        rpc_client = cls._rpc_client
+        return NearAccount("test.near", rpc_client)

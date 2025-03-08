@@ -1,27 +1,21 @@
-# near_pytest/core/account.py
-import json
-import base64
-import uuid
-from typing import Dict, Any, Optional, Union, List
+from pathlib import Path
+from typing import Dict, Any, Optional, Union
 
-# Note: We're assuming near-py or similar is used for RPC interactions
-# This class defines the interface without implementing the RPC calls directly
+from ..utils.exceptions import AccountError
 
 class NearAccount:
     """Represents an account on the NEAR blockchain."""
     
-    def __init__(self, account_id: str, rpc_client, keystore=None):
+    def __init__(self, account_id: str, rpc_client):
         """
         Initialize a NearAccount.
         
         Args:
             account_id: The NEAR account ID
             rpc_client: Client for making RPC calls
-            keystore: Optional keystore for managing account keys
         """
         self._account_id = account_id
         self._rpc_client = rpc_client
-        self._keystore = keystore
     
     @property
     def account_id(self) -> str:
@@ -39,28 +33,11 @@ class NearAccount:
         Returns:
             A new NearAccount instance for the created subaccount
         """
-        # Make account ID unique to avoid conflicts
-        unique_id = str(uuid.uuid4())[:8]
-        full_name = f"{name}-{unique_id}.{self._account_id}"
-        
-        # Create the account using RPC
-        if initial_balance is None:
-            # Default to a reasonable amount for testing
-            initial_balance = 10 * 10**24  # 10 NEAR
-        
-        # Create account transaction
-        result = self._rpc_client.call_function(
-            self._account_id,
-            "create_account",
-            {
-                "new_account_id": full_name,
-                "new_public_key": self._keystore.create_key(full_name) if self._keystore else None,
-                "amount": str(initial_balance)
-            }
-        )
-        
-        # Return a new NearAccount instance for the created account
-        return NearAccount(full_name, self._rpc_client, self._keystore)
+        try:
+            new_account_id = self._rpc_client.create_account(name, initial_balance)
+            return NearAccount(new_account_id, self._rpc_client)
+        except Exception as e:
+            raise AccountError(f"Failed to create subaccount: {str(e)}") from e
     
     def balance(self) -> int:
         """
@@ -69,9 +46,10 @@ class NearAccount:
         Returns:
             Account balance in yoctoNEAR
         """
-        # Get account balance using RPC
-        result = self._rpc_client.view_account(self._account_id)
-        return int(result.get('amount', '0'))
+        try:
+            return self._rpc_client.get_balance(self._account_id)
+        except Exception as e:
+            raise AccountError(f"Failed to get balance: {str(e)}") from e
     
     def call(
         self, 
@@ -79,7 +57,7 @@ class NearAccount:
         method_name: str, 
         args: Optional[Dict[str, Any]] = None, 
         amount: int = 0,
-        gas: int = None
+        gas: int = 0
     ) -> Any:
         """
         Call a contract method.
@@ -94,25 +72,17 @@ class NearAccount:
         Returns:
             Result of the method call
         """
-        if args is None:
-            args = {}
-        
-        if gas is None:
-            # Default gas
-            gas = 30 * 10**12  # 30 TGas
-        
-        # Call the contract using RPC
-        result = self._rpc_client.call_function(
-            self._account_id,
-            contract_id,
-            method_name,
-            args,
-            amount=amount,
-            gas=gas
-        )
-        
-        # Parse and return the result
-        return self._parse_call_result(result)
+        try:
+            return self._rpc_client.call_function(
+                self._account_id,
+                contract_id,
+                method_name,
+                args,
+                amount,
+                gas
+            )
+        except Exception as e:
+            raise AccountError(f"Failed to call contract method: {str(e)}") from e
     
     def view(self, contract_id: str, method_name: str, args: Optional[Dict[str, Any]] = None) -> Any:
         """
@@ -126,18 +96,14 @@ class NearAccount:
         Returns:
             Result of the view method call
         """
-        if args is None:
-            args = {}
-        
-        # Call the view method using RPC
-        result = self._rpc_client.view_function(
-            contract_id,
-            method_name,
-            args
-        )
-        
-        # Parse and return the result
-        return self._parse_view_result(result)
+        try:
+            return self._rpc_client.view_function(
+                contract_id,
+                method_name,
+                args
+            )
+        except Exception as e:
+            raise AccountError(f"Failed to call view method: {str(e)}") from e
     
     def transfer(self, receiver_id: str, amount: int) -> Dict[str, Any]:
         """
@@ -150,16 +116,16 @@ class NearAccount:
         Returns:
             Transaction result
         """
-        # Transfer tokens using RPC
-        result = self._rpc_client.send_tokens(
-            self._account_id,
-            receiver_id,
-            amount
-        )
-        
-        return result
+        try:
+            return self._rpc_client.send_tokens(
+                self._account_id,
+                receiver_id,
+                amount
+            )
+        except Exception as e:
+            raise AccountError(f"Failed to transfer tokens: {str(e)}") from e
     
-    def deploy_contract(self, wasm_file: Union[str, bytes]) -> Dict[str, Any]:
+    def deploy_contract(self, wasm_file: Union[str, bytes, Path]) -> Dict[str, Any]:
         """
         Deploy a contract to this account.
         
@@ -169,41 +135,10 @@ class NearAccount:
         Returns:
             Deployment result
         """
-        # Read WASM file if path is provided
-        if isinstance(wasm_file, str):
-            with open(wasm_file, 'rb') as f:
-                wasm_binary = f.read()
-        else:
-            wasm_binary = wasm_file
-        
-        # Deploy contract using RPC
-        result = self._rpc_client.deploy_contract(
-            self._account_id,
-            wasm_binary
-        )
-        
-        return result
-    
-    def _parse_call_result(self, result: Dict[str, Any]) -> Any:
-        """Parse the result of a contract call."""
-        if 'result' not in result:
-            return None
-        
         try:
-            # Try to decode as JSON
-            return json.loads(result['result'])
-        except (json.JSONDecodeError, TypeError):
-            # Return as-is if not valid JSON
-            return result['result']
-    
-    def _parse_view_result(self, result: Dict[str, Any]) -> Any:
-        """Parse the result of a view method call."""
-        if 'result' not in result:
-            return None
-        
-        try:
-            # Try to decode as JSON
-            return json.loads(result['result'])
-        except (json.JSONDecodeError, TypeError):
-            # Return as-is if not valid JSON
-            return result['result']
+            return self._rpc_client.deploy_contract(
+                self._account_id,
+                wasm_file
+            )
+        except Exception as e:
+            raise AccountError(f"Failed to deploy contract: {str(e)}") from e

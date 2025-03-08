@@ -10,11 +10,20 @@ A pytest-native approach for testing NEAR smart contracts in Python.
 - Easy account creation and management
 - State reset between tests
 - Intuitive contract interaction API
+- **Integration with py-near for blockchain interaction**
 
 ## Installation
 
+Basic installation:
+
 ```bash
 pip install near-pytest
+```
+
+With py-near integration (recommended):
+
+```bash
+pip install near-pytest[pynear]
 ```
 
 ## Requirements
@@ -22,6 +31,8 @@ pip install near-pytest
 - Python 3.9+
 - nearc (for contract compilation)
   - Install with `pip install nearc`
+- py-near (for RPC interaction)
+  - Included with `pip install near-pytest[pynear]`
 
 ## Quick Start
 
@@ -92,6 +103,33 @@ class TestCounter(NearTestCase):
 3. Each test gets a fresh blockchain state to work with.
 4. Contracts are compiled with `nearc` and cached for efficiency.
 5. Test accounts are created with unique names to prevent conflicts.
+6. **Integration with py-near** provides the communication layer with the NEAR blockchain.
+
+## Integration with py-near
+
+The library uses a synchronous wrapper around py-near's async API to make testing simpler:
+
+```python
+from near_pytest import SyncNearClient
+
+# Create a client
+client = SyncNearClient("http://localhost:3030", "my-account.near", "ed25519:...")
+
+# Call contract methods
+result = client.call_function(
+    sender_id="my-account.near",
+    contract_id="counter.near",
+    method_name="increment",
+    args={}
+)
+
+# View contract state
+count = client.view_function(
+    contract_id="counter.near",
+    method_name="get_count",
+    args={}
+)
+```
 
 ## API Reference
 
@@ -132,6 +170,19 @@ Represents an account on the NEAR blockchain.
 - `view(contract_id, method_name, args=None)`: Call a view method on a contract.
 - `transfer(receiver_id, amount)`: Transfer NEAR tokens to another account.
 - `deploy_contract(wasm_file)`: Deploy a contract to this account.
+
+### `SyncNearClient`
+
+Synchronous wrapper around py-near's async API.
+
+#### Methods
+
+- `create_account(name, initial_balance=None)`: Create a new account.
+- `get_balance(account_id)`: Get account balance in yoctoNEAR.
+- `call_function(sender_id, contract_id, method_name, args=None, amount=0, gas=None)`: Call a contract function.
+- `view_function(contract_id, method_name, args=None)`: Call a view function.
+- `deploy_contract(account_id, wasm_binary)`: Deploy a contract to an account.
+- `send_tokens(sender_id, receiver_id, amount)`: Send NEAR tokens from one account to another.
 
 ## Running Tests
 

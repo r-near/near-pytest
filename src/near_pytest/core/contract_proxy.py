@@ -1,5 +1,4 @@
-# near_pytest/core/contract_proxy.py
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 
 from .account import NearAccount
 
@@ -25,7 +24,7 @@ class ContractProxy:
         method_name: str, 
         args: Optional[Dict[str, Any]] = None, 
         amount: int = 0,
-        gas: int = None
+        gas: int = 0
     ) -> Any:
         """
         Call a contract method using the contract account.
@@ -53,7 +52,7 @@ class ContractProxy:
         method_name: str,
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
-        gas: int = None
+        gas: int = 0
     ) -> Any:
         """
         Call a contract method as a different account.

@@ -8,6 +8,7 @@ from .core.contract_proxy import ContractProxy
 from .core.account import NearAccount
 from .core.contract_manager import ContractManager
 from .core.sandbox_manager import SandboxManager
+from .core.sync_client import SyncNearClient
 
 __version__ = "0.1.0"
 
@@ -22,5 +23,6 @@ __all__ = [
     "NearAccount",
     "ContractManager",
     "SandboxManager",
+    "SyncNearClient",
     "compile_contract",
 ]
