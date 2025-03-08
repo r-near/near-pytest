@@ -1,4 +1,5 @@
 # near_pytest/testing/test_case.py
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 
@@ -18,11 +19,11 @@ class NearTestCase:
     _contract_manager = None
     _rpc_client = None
     _root_account = None
+    _test_accounts = {}
 
     @classmethod
     def setup_class(cls):
         """Set up the test class by initializing shared resources."""
-        print("Parent method setup")
         # This is called once before any tests in the class are run
         cls._sandbox_manager = cls.get_sandbox_manager()
         cls._contract_manager = cls.get_contract_manager()
@@ -144,16 +145,18 @@ class NearTestCase:
         """Create an RPC client for interacting with the sandbox."""
         sandbox_manager = cls.get_sandbox_manager()
         rpc_endpoint = sandbox_manager.rpc_endpoint()
-        print(f"RPC endpoint: {rpc_endpoint}")
 
         # For sandbox, we use test.near as the master account
-        # In a real implementation, we would need to load the key from the sandbox
-        # For now, we use a placeholder key which would be replaced with the actual key
         master_account_id = "test.near"
 
-        # This is a placeholder - in a real implementation, we'd get the actual key
-        # from the sandbox's validator_key.json
-        master_private_key = "ed25519:3D4YudUahN1nawWogh8pALmEyzGnEfi4qnwEDenACbv9HbTYbgKZ5JFpADrLZEP7AwVcUWRmwwxQ9tLVHxhFGzXt"
+        # Get the validator key from the sandbox
+        try:
+            master_private_key = sandbox_manager.get_validator_key()
+            print(f"Using validator key: {master_private_key[:8]}...")
+        except Exception as e:
+            print(f"Warning: Could not load validator key: {e}")
+            # Fallback to a default key (this will likely fail)
+            master_private_key = "ed25519:3D4YudUahN1nawWogh8pALmEyzGnEfi4qnwEDenACbv9HbTYbgKZ5JFpADrLZEP7AwVcUWRmwwxQ9tLVHxhFGzXt"
 
         return SyncNearClient(rpc_endpoint, master_account_id, master_private_key)
 

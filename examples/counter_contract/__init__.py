@@ -1,5 +1,4 @@
-# examples/counter_contract/__init__.py
-import near
+import near  # type: ignore
 
 
 # Store the count in contract storage

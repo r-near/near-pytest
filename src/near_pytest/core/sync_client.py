@@ -109,7 +109,7 @@ class SyncNearClient:
 
             # Create and cache the new account
             self._accounts[account_id] = self._create_py_near_account(
-                account_id, key_pair.private_key
+                account_id, bytes(key_pair)
             )
 
             return account_id
