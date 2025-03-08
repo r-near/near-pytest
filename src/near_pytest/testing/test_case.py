@@ -22,6 +22,7 @@ class NearTestCase:
     @classmethod
     def setup_class(cls):
         """Set up the test class by initializing shared resources."""
+        print("Parent method setup")
         # This is called once before any tests in the class are run
         cls._sandbox_manager = cls.get_sandbox_manager()
         cls._contract_manager = cls.get_contract_manager()
@@ -143,6 +144,7 @@ class NearTestCase:
         """Create an RPC client for interacting with the sandbox."""
         sandbox_manager = cls.get_sandbox_manager()
         rpc_endpoint = sandbox_manager.rpc_endpoint()
+        print(f"RPC endpoint: {rpc_endpoint}")
 
         # For sandbox, we use test.near as the master account
         # In a real implementation, we would need to load the key from the sandbox

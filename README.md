@@ -10,7 +10,7 @@ A pytest-native approach for testing NEAR smart contracts in Python.
 - Easy account creation and management
 - State reset between tests
 - Intuitive contract interaction API
-- **Integration with py-near for blockchain interaction**
+- Integration with py-near for blockchain interaction
 
 ## Installation
 

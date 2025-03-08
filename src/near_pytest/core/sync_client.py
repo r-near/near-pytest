@@ -1,11 +1,19 @@
-# near_pytest/core/sync_client.py
 import asyncio
 import uuid
 from pathlib import Path
+from typing import Optional
 
 
 class SyncNearClient:
     """Synchronous wrapper around py-near's async API."""
+
+    def __del__(self):
+        """Clean up resources when the object is deleted."""
+        if hasattr(self, "_loop") and self._loop is not None:
+            if self._loop.is_running():
+                self._loop.stop()
+            if not self._loop.is_closed():
+                self._loop.close()
 
     def __init__(self, rpc_endpoint, master_account_id=None, master_private_key=None):
         """
@@ -23,30 +31,32 @@ class SyncNearClient:
         # Account cache
         self._accounts = {}
 
+        # Create a persistent event loop for async operations
+        self._loop = asyncio.new_event_loop()
+
         # Initialize the master account
         self._master_account = self._create_py_near_account(
             self.master_account_id, self.master_private_key
         )
 
-    def _create_py_near_account(self, account_id, private_key=None):
+    def _create_py_near_account(
+        self, account_id: str, private_key: Optional[bytes] = None
+    ):
         """Create a py-near Account object and initialize it."""
         try:
             # Import py-near
             from py_near.account import Account
+            from nacl.public import PrivateKey
 
             # Generate a key pair if not provided
             if private_key is None:
-                from nacl.public import PrivateKey
-
-                private_key = PrivateKey.generate()
+                private_key = bytes(PrivateKey.generate())
 
             # Create the account
-            account = Account(
-                account_id, bytes(private_key), provider_url=self.endpoint
-            )
+            account = Account(account_id, private_key, rpc_addr=self.endpoint)
 
-            # Initialize the account
-            asyncio.run(account.startup())
+            # Initialize the account - use our safe_run_async method
+            self.safe_run_async(account.startup())
 
             return account
         except ImportError:
@@ -75,8 +85,8 @@ class SyncNearClient:
             account_id: The full account ID of the created account
         """
         try:
-            from nacl.public import PrivateKey
             from py_near.dapps.core import NEAR
+            from nacl.public import PrivateKey
 
             # Generate a unique account ID
             unique_id = str(uuid.uuid4())[:8]
@@ -91,12 +101,11 @@ class SyncNearClient:
 
             # Call create_account on the master account
             master = self._master_account
-            result = asyncio.run(
+            result = self.safe_run_async(
                 master.create_account(
                     account_id, bytes(key_pair.public_key), initial_balance
                 )
             )
-            print(result)  # TODO: Remove
 
             # Create and cache the new account
             self._accounts[account_id] = self._create_py_near_account(
@@ -111,13 +120,13 @@ class SyncNearClient:
     def view_account(self, account_id):
         """Get account information."""
         master = self._master_account
-        result = asyncio.run(master.view_account(account_id))
+        result = self.safe_run_async(master.view_account(account_id))
         return result
 
     def get_balance(self, account_id):
         """Get account balance in yoctoNEAR."""
         account = self.get_account(account_id)
-        balance = asyncio.run(account.get_balance())
+        balance = self.safe_run_async(account.get_balance())
         return balance
 
     def call_function(
@@ -150,7 +159,7 @@ class SyncNearClient:
             sender = self.get_account(sender_id)
 
             # Call the function
-            result = asyncio.run(
+            result = self.safe_run_async(
                 sender.call_function(
                     contract_id, method_name, args, amount=amount, gas=gas
                 )
@@ -180,7 +189,9 @@ class SyncNearClient:
         # View functions can be called from any account
         master = self._master_account
 
-        result = asyncio.run(master.view_function(contract_id, method_name, args))
+        result = self.safe_run_async(
+            master.view_function(contract_id, method_name, args)
+        )
 
         return result
 
@@ -205,7 +216,7 @@ class SyncNearClient:
             account = self.get_account(account_id)
 
             # Deploy the contract
-            result = asyncio.run(account.deploy_contract(wasm_binary))
+            result = self.safe_run_async(account.deploy_contract(wasm_binary))
 
             return self._extract_result(result)
 
@@ -229,7 +240,7 @@ class SyncNearClient:
             sender = self.get_account(sender_id)
 
             # Send the tokens
-            result = asyncio.run(sender.send_money(receiver_id, amount))
+            result = self.safe_run_async(sender.send_money(receiver_id, amount))
 
             return self._extract_result(result)
 
@@ -241,3 +252,27 @@ class SyncNearClient:
         # This depends on the structure of py-near's transaction result
         # For now, we'll return the whole result
         return transaction_result
+
+    def safe_run_async(self, coroutine):
+        """
+        Safely run an async coroutine, handling event loop issues.
+
+        This uses a persistent event loop to avoid "Event loop is closed" errors.
+        """
+        try:
+            # Check if we're already in an event loop
+            try:
+                current_loop = asyncio.get_running_loop()
+                # If we get here, we're already in an event loop
+                # Create a future in this loop
+                future = asyncio.run_coroutine_threadsafe(coroutine, current_loop)
+                return future.result()
+            except RuntimeError:
+                # No running event loop, use our persistent one
+                return self._loop.run_until_complete(coroutine)
+        except Exception as e:
+            if "Event loop is closed" in str(e):
+                # If our loop got closed, create a new one
+                self._loop = asyncio.new_event_loop()
+                return self._loop.run_until_complete(coroutine)
+            raise

@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
+from ..core.sync_client import SyncNearClient
 
 from ..utils.exceptions import AccountError
 
@@ -7,7 +8,7 @@ from ..utils.exceptions import AccountError
 class NearAccount:
     """Represents an account on the NEAR blockchain."""
 
-    def __init__(self, account_id: str, rpc_client):
+    def __init__(self, account_id: str, rpc_client: SyncNearClient):
         """
         Initialize a NearAccount.
 

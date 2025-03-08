@@ -1,8 +1,7 @@
-# near_pytest/utils/binary.py
 import os
 import platform
 import shutil
-import urllib.request
+import requests
 import tarfile
 from pathlib import Path
 import tempfile
@@ -18,11 +17,9 @@ def get_platform_id():
     machine = platform.machine().lower()
 
     if system == "darwin":
-        system = "darwin"  # macOS
-    elif system == "windows":
-        system = "windows"
+        system = "Darwin"
     elif system == "linux":
-        system = "linux"
+        system = "Linux"
     else:
         raise BinaryError(f"Unsupported platform: {system}")
 
@@ -42,7 +39,7 @@ def get_binary_dir():
     home_dir = Path.home()
     binary_dir = home_dir / ".near-pytest" / "bin"
     binary_dir.mkdir(parents=True, exist_ok=True)
-    return binary_dir
+    return binary_dir.absolute()
 
 
 def get_binary_url(version=DEFAULT_VERSION):
@@ -54,6 +51,7 @@ def get_binary_url(version=DEFAULT_VERSION):
 
 def download_binary(version=DEFAULT_VERSION):
     """Download the sandbox binary for the current platform."""
+    print("Downloading binary")
     binary_dir = get_binary_dir()
     system, arch = get_platform_id()
     binary_name = "near-sandbox"
@@ -61,9 +59,11 @@ def download_binary(version=DEFAULT_VERSION):
         binary_name += ".exe"
 
     binary_path = binary_dir / f"{binary_name}-{version}"
+    print(f"Target binary path: {binary_path}")
 
     # Skip if already exists
     if binary_path.exists():
+        print("Binary already exists, skipping download")
         return binary_path
 
     # Download the binary
@@ -71,37 +71,47 @@ def download_binary(version=DEFAULT_VERSION):
     print(f"Downloading NEAR sandbox binary from {url}")
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        tar_path = Path(temp_dir) / "near-sandbox.tar.gz"
+        temp_path = Path(temp_dir)
+        tar_path = temp_path / "near-sandbox.tar.gz"
 
         try:
-            # Download the tar.gz file
-            urllib.request.urlretrieve(url, tar_path)
-
-            # Extract the binary
-            with tarfile.open(tar_path) as tar:
-                tar.extractall(path=temp_dir)
-
-            # Find the extracted binary
-            extracted_binary = None
-            for root, _, files in os.walk(temp_dir):
-                for file in files:
-                    if file.startswith("near-sandbox"):
-                        extracted_binary = Path(root) / file
-                        break
-                if extracted_binary:
-                    break
-
-            if not extracted_binary:
-                raise BinaryError(
-                    "Could not find near-sandbox binary in the downloaded archive"
-                )
-
+            # Download the tar.gz file with requests
+            response = requests.get(url, stream=True)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            
+            with open(tar_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    
+            print(f"Download completed to {tar_path}")
+            
+            # Extract directly to the binary directory with strip=1 (similar to tar.x({ strip: 1 }) in TS)
+            # This removes the top-level directory (Linux-x86_64) during extraction
+            with tarfile.open(tar_path, mode="r:gz") as tar:
+                # Get all members
+                members = tar.getmembers()
+                print(f"Archive members: {[m.name for m in members]}")
+                
+                # Strip the first directory component for each member
+                for member in members:
+                    parts = member.name.split('/', 1)
+                    if len(parts) > 1:
+                        member.name = parts[1]
+                
+                # Extract only the binary file, not directories
+                binary_members = [m for m in members if m.name == binary_name]
+                if not binary_members:
+                    raise BinaryError(f"Binary '{binary_name}' not found in archive")
+                
+                # Extract directly to the binary path with the versioned name
+                for member in binary_members:
+                    with tar.extractfile(member) as source:
+                        with open(binary_path, 'wb') as target:
+                            target.write(source.read())
+            
             # Make it executable
-            os.chmod(extracted_binary, 0o755)
-
-            # Move to final location
-            shutil.copy2(extracted_binary, binary_path)
             os.chmod(binary_path, 0o755)
+            print(f"Binary installed to {binary_path}")
 
             return binary_path
 
@@ -114,15 +124,15 @@ def download_binary(version=DEFAULT_VERSION):
 
 def ensure_sandbox_binary(version=DEFAULT_VERSION):
     """Ensure the sandbox binary is available and return its path."""
-    # First check if it's in PATH
+    print("Ensuring sandbox binary...")
     binary_name = "near-sandbox"
     if platform.system().lower() == "windows":
         binary_name += ".exe"
 
     # Check if it's in PATH
-    path_binary = shutil.which(binary_name)
-    if path_binary:
-        return path_binary
+    # path_binary = shutil.which(binary_name)
+    # if path_binary:
+    #     return path_binary
 
     # Otherwise download it
     return download_binary(version)
