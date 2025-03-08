@@ -2,6 +2,8 @@ from typing import Dict, Any, Optional
 
 from .account import NearAccount
 
+from py_near.constants import DEFAULT_ATTACHED_GAS
+
 
 class ContractProxy:
     """Provides a convenient interface for interacting with deployed contracts."""
@@ -25,7 +27,7 @@ class ContractProxy:
         method_name: str,
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
-        gas: int = 0,
+        gas: int = DEFAULT_ATTACHED_GAS,
     ) -> Any:
         """
         Call a contract method using the contract account.
@@ -47,7 +49,7 @@ class ContractProxy:
         method_name: str,
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
-        gas: int = 0,
+        gas: int = DEFAULT_ATTACHED_GAS,
     ) -> Any:
         """
         Call a contract method as a different account.

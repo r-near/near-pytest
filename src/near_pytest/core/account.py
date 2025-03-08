@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 from ..core.sync_client import SyncNearClient
+from py_near.constants import DEFAULT_ATTACHED_GAS
 
 from ..utils.exceptions import AccountError
 
@@ -61,7 +62,7 @@ class NearAccount:
         method_name: str,
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
-        gas: int = 0,
+        gas: int = DEFAULT_ATTACHED_GAS,
     ) -> Any:
         """
         Call a contract method.
@@ -76,12 +77,20 @@ class NearAccount:
         Returns:
             Result of the method call
         """
-        try:
-            return self._rpc_client.call_function(
-                self._account_id, contract_id, method_name, args, amount, gas
-            )
-        except Exception as e:
-            raise AccountError(f"Failed to call contract method: {str(e)}") from e
+        if args is None:
+            args = {}
+
+        if gas is None:
+            gas = DEFAULT_ATTACHED_GAS
+
+        return self._rpc_client.call_function(
+            sender_id=self._account_id,
+            contract_id=contract_id,
+            method_name=method_name,
+            args=args,
+            amount=amount,
+            gas=gas,
+        )
 
     def view(
         self, contract_id: str, method_name: str, args: Optional[Dict[str, Any]] = None

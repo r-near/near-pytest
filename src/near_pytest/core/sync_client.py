@@ -1,7 +1,13 @@
 import asyncio
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
+from py_near.account import Account
+from nacl.signing import SigningKey
+from py_near.providers import JsonProvider
+from py_near.constants import DEFAULT_ATTACHED_GAS
+from py_near.dapps.core import NEAR
+import base58
 
 
 class SyncNearClient:
@@ -15,7 +21,12 @@ class SyncNearClient:
             if not self._loop.is_closed():
                 self._loop.close()
 
-    def __init__(self, rpc_endpoint, master_account_id=None, master_private_key=None):
+    def __init__(
+        self,
+        rpc_endpoint: str,
+        master_account_id: Optional[str] = None,
+        master_private_key: Optional[bytes] = None,
+    ):
         """
         Initialize the synchronous client.
 
@@ -29,7 +40,7 @@ class SyncNearClient:
         self.master_private_key = master_private_key
 
         # Account cache
-        self._accounts = {}
+        self._accounts: Dict[str, Account] = {}
 
         # Create a persistent event loop for async operations
         self._loop = asyncio.new_event_loop()
@@ -41,35 +52,46 @@ class SyncNearClient:
 
     def _create_py_near_account(
         self, account_id: str, private_key: Optional[bytes] = None
-    ):
+    ) -> Account:
         """Create a py-near Account object and initialize it."""
-        try:
-            # Import py-near
-            from py_near.account import Account
-            from nacl.public import PrivateKey
 
-            # Generate a key pair if not provided
-            if private_key is None:
-                private_key = bytes(PrivateKey.generate())
+        # Generate a key pair if not provided
+        if private_key is None:
+            private_key = bytes(SigningKey.generate())
+
+        # Create the account
+        account = Account(account_id, private_key, rpc_addr=self.endpoint)
+
+        # Initialize the account - use our safe_run_async method
+        self.safe_run_async(account.startup())
+
+        return account
+
+    def get_account(self, account_id) -> Account:
+        """
+        Get an account by ID, creating it if it doesn't exist.
+
+        Args:
+            account_id: Account ID to get or create
+
+        Returns:
+            py_near.account.Account: The account object
+        """
+        # Check if the account is already in our cache
+        if account_id not in self._accounts:
+            print(f"Account {account_id} not found in cache, creating...")
+            # The account doesn't exist
+            # We'll create it as a subaccount of the master account
+            if account_id.endswith(f".{self.master_account_id}"):
+                # It's already properly formatted as a subaccount
+                name = account_id.split(".")[0]
+            else:
+                # Format as a proper subaccount name
+                name = account_id
+                account_id = f"{name}.{self.master_account_id}"
 
             # Create the account
-            account = Account(account_id, private_key, rpc_addr=self.endpoint)
-
-            # Initialize the account - use our safe_run_async method
-            self.safe_run_async(account.startup())
-
-            return account
-        except ImportError:
-            raise ImportError(
-                "py-near is not installed. Please install it with 'pip install py-near'"
-            )
-
-    def get_account(self, account_id):
-        """Get an account by ID, creating it if necessary."""
-        if account_id not in self._accounts:
-            # For simplicity, we assume the account exists
-            # In a real implementation, we'd check if it exists and create it if not
-            self._accounts[account_id] = self._create_py_near_account(account_id)
+            self.create_account(name)
 
         return self._accounts[account_id]
 
@@ -84,53 +106,72 @@ class SyncNearClient:
         Returns:
             account_id: The full account ID of the created account
         """
-        try:
-            from py_near.dapps.core import NEAR
-            from nacl.public import PrivateKey
+        # Generate a unique account ID
+        unique_id = str(uuid.uuid4())[:8]
+        account_id = f"{name}-{unique_id}.{self.master_account_id}"
+        print("Creating account (inside create_account method):", account_id)
 
-            # Generate a unique account ID
-            unique_id = str(uuid.uuid4())[:8]
-            account_id = f"{name}-{unique_id}.{self.master_account_id}"
+        # Generate a new signing key
+        key_pair = SigningKey.generate()
 
-            # Generate a key pair
-            key_pair = PrivateKey.generate()
+        # To get the expanded secret key (64 bytes), we can access the _signing_key attribute
+        # This is the expanded form that contains both the seed and the 'prefix' that's derived from it
+        expanded_secret_key = key_pair._signing_key
 
-            # Set default initial balance if not provided
-            if initial_balance is None:
-                initial_balance = 10 * NEAR  # 10 NEAR
+        # Format the keys as strings with the ed25519: prefix
+        public_key_str = "ed25519:" + base58.b58encode(
+            bytes(key_pair.verify_key)
+        ).decode("utf-8")
+        expanded_private_key_str = "ed25519:" + base58.b58encode(
+            expanded_secret_key
+        ).decode("utf-8")
 
-            # Call create_account on the master account
-            master = self._master_account
-            result = self.safe_run_async(
-                master.create_account(
-                    account_id, bytes(key_pair.public_key), initial_balance
-                )
-            )
+        # Print the keys
+        print("Public key:", public_key_str)
+        print("Expanded private key (64 bytes):", expanded_private_key_str)
 
-            # Create and cache the new account
-            self._accounts[account_id] = self._create_py_near_account(
-                account_id, bytes(key_pair)
-            )
+        # Set default initial balance if not provided
+        if initial_balance is None:
+            initial_balance = 10 * NEAR  # 10 NEAR
 
-            return account_id
-
-        except Exception as e:
-            raise Exception(f"Failed to create account: {str(e)}")
-
-    def view_account(self, account_id):
-        """Get account information."""
+        # Call create_account on the master account
         master = self._master_account
-        result = self.safe_run_async(master.view_account(account_id))
+        result = self.safe_run_async(
+            master.create_account(account_id, public_key_str, initial_balance)
+        )
+        print(result)
+
+        # Create and cache the new account
+        self._accounts[account_id] = self._create_py_near_account(
+            account_id, expanded_private_key_str
+        )
+        print("Account created:", account_id)
+
+        return account_id
+
+    def view_account(self, account_id: str) -> dict:
+        """Get account information."""
+        result = self.safe_run_async(
+            JsonProvider(self.endpoint).get_account(account_id)
+        )
         return result
 
-    def get_balance(self, account_id):
+    def get_balance(self, account_id: str) -> str:
         """Get account balance in yoctoNEAR."""
         account = self.get_account(account_id)
         balance = self.safe_run_async(account.get_balance())
         return balance
 
     def call_function(
-        self, sender_id, contract_id, method_name, args=None, amount=0, gas=None
+        self,
+        sender_id: str,
+        contract_id: str,
+        method_name: str,
+        args: Optional[Dict] = {},
+        gas: int = DEFAULT_ATTACHED_GAS,
+        amount: int = 0,
+        nowait: bool = False,
+        included: bool = False,
     ):
         """
         Call a contract function.
@@ -146,30 +187,36 @@ class SyncNearClient:
         Returns:
             Result of the function call
         """
-        try:
-            from py_near.constants import DEFAULT_ATTACHED_GAS
+        if args is None:
+            args = {}
 
-            if args is None:
-                args = {}
+        if gas is None:
+            gas = DEFAULT_ATTACHED_GAS
 
-            if gas is None:
-                gas = DEFAULT_ATTACHED_GAS
+        # Get the sender account
+        sender = self.get_account(sender_id)
 
-            # Get the sender account
-            sender = self.get_account(sender_id)
+        print(f"Calling function {method_name} on contract {contract_id}")
+        print(f"{args=}")
+        print(f"{amount=}")
+        print(f"{gas=}")
+        print(f"{nowait=}")
 
-            # Call the function
-            result = self.safe_run_async(
-                sender.call_function(
-                    contract_id, method_name, args, amount=amount, gas=gas
-                )
+        # Call the function
+        result = self.safe_run_async(
+            sender.function_call(
+                contract_id=contract_id,
+                method_name=method_name,
+                args=args,
+                gas=gas,
+                amount=amount,
+                nowait=nowait,
+                included=included,
             )
+        )
 
-            # Extract and return the result
-            return self._extract_result(result)
-
-        except Exception as e:
-            raise Exception(f"Failed to call function: {str(e)}")
+        # Extract and return the result
+        return self._extract_result(result)
 
     def view_function(self, contract_id, method_name, args=None):
         """
@@ -206,22 +253,20 @@ class SyncNearClient:
         Returns:
             Result of the deployment
         """
-        try:
-            # If wasm_binary is a path, read it
-            if isinstance(wasm_binary, (str, Path)):
-                with open(wasm_binary, "rb") as f:
-                    wasm_binary = f.read()
+        # If wasm_binary is a path, read it
+        if isinstance(wasm_binary, (str, Path)):
+            with open(wasm_binary, "rb") as f:
+                wasm_binary = f.read()
 
-            # Get the account
-            account = self.get_account(account_id)
+        # Get the account
+        account = self.get_account(account_id)
+        print("Deploying contract to account:", account_id)
+        print("Py-Near Account Obj: ", account)
 
-            # Deploy the contract
-            result = self.safe_run_async(account.deploy_contract(wasm_binary))
+        # Deploy the contract
+        result = self.safe_run_async(account.deploy_contract(wasm_binary))
 
-            return self._extract_result(result)
-
-        except Exception as e:
-            raise Exception(f"Failed to deploy contract: {str(e)}")
+        return self._extract_result(result)
 
     def send_tokens(self, sender_id, receiver_id, amount):
         """
