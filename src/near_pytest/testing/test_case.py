@@ -9,6 +9,7 @@ from ..core.contract_manager import ContractManager
 from ..core.account import NearAccount
 from ..core.contract_proxy import ContractProxy
 from ..core.sync_client import SyncNearClient
+from ..utils.exceptions import SandboxError
 
 
 class NearTestCase:
@@ -154,9 +155,7 @@ class NearTestCase:
             master_private_key = sandbox_manager.get_validator_key()
             print(f"Using validator key: {master_private_key[:8]}...")
         except Exception as e:
-            print(f"Warning: Could not load validator key: {e}")
-            # Fallback to a default key (this will likely fail)
-            master_private_key = "ed25519:3D4YudUahN1nawWogh8pALmEyzGnEfi4qnwEDenACbv9HbTYbgKZ5JFpADrLZEP7AwVcUWRmwwxQ9tLVHxhFGzXt"
+            raise SandboxError(f"Could not load validator key: {e}")
 
         return SyncNearClient(rpc_endpoint, master_account_id, master_private_key)
 
