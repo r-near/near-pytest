@@ -12,10 +12,12 @@ from .core.sync_client import SyncNearClient
 
 __version__ = "0.1.0"
 
+
 # Convenience functions for use in tests
 def compile_contract(contract_path):
     """Compile a contract and return the path to the WASM file."""
     return NearTestCase.compile_contract(contract_path)
+
 
 __all__ = [
     "NearTestCase",
