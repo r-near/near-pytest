@@ -8,6 +8,7 @@ from py_near.providers import JsonProvider
 from py_near.constants import DEFAULT_ATTACHED_GAS
 from py_near.dapps.core import NEAR
 import base58
+from py_near.models import ViewFunctionResult
 
 
 class SyncNearClient:
@@ -218,7 +219,7 @@ class SyncNearClient:
         # Extract and return the result
         return self._extract_result(result)
 
-    def view_function(self, contract_id, method_name, args=None):
+    def view_function(self, contract_id, method_name, args=None) -> ViewFunctionResult:
         """
         Call a view function.
 

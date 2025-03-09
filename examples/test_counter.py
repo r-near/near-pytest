@@ -36,11 +36,11 @@ class TestCounter(NearTestCase):
     def test_increment(self):
         # Call contract method
         result = self.counter.call("increment", {})
-        assert result == 1
+        assert result == "1"
 
         # Call again to verify state persistence within a test
         result = self.counter.call("increment", {})
-        assert result == 2
+        assert result == "2"
 
     # def test_increment_as_alice(self):
     #     # Each test starts with fresh state

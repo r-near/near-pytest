@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
-
+from py_near.models import TransactionResult
 from .account import NearAccount
-
+import base64
 from py_near.constants import DEFAULT_ATTACHED_GAS
 
 
@@ -28,7 +28,7 @@ class ContractProxy:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: int = DEFAULT_ATTACHED_GAS,
-    ) -> Any:
+    ) -> str:
         """
         Call a contract method using the contract account.
 
@@ -41,7 +41,12 @@ class ContractProxy:
         Returns:
             Result of the method call
         """
-        return self._account.call(self.account_id, method_name, args, amount, gas)
+        result = self._account.call(self.account_id, method_name, args, amount, gas)
+        status = result.status
+        if "SuccessValue" not in status:
+            raise Exception(f"Error with function call: {result}")
+
+        return base64.b64decode(result.status["SuccessValue"]).decode("utf-8")
 
     def call_as(
         self,
@@ -50,7 +55,7 @@ class ContractProxy:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: int = DEFAULT_ATTACHED_GAS,
-    ) -> Any:
+    ) -> TransactionResult:
         """
         Call a contract method as a different account.
 
