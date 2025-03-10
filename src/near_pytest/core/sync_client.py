@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Any
 from py_near.account import Account
 from nacl.signing import SigningKey
 from py_near.providers import JsonProvider
@@ -157,6 +157,23 @@ class SyncNearClient:
         )
         return result
 
+    def get_latest_block(self) -> dict:
+        """Get block information."""
+        result = self.safe_run_async(
+            JsonProvider(self.endpoint).json_rpc("block", params={"finality": "final"})
+        )
+        return result
+
+    def patch_state(self, records: List[Dict[str, Any]]) -> bool:
+        """Patch the state with the provided records."""
+        result = self.safe_run_async(
+            JsonProvider(self.endpoint).json_rpc(
+                "sandbox_patch_state", params={"records": records}
+            )
+        )
+        # The "success" response is an empty dict
+        return result == {}
+
     def get_balance(self, account_id: str) -> str:
         """Get account balance in yoctoNEAR."""
         account = self.get_account(account_id)
@@ -241,7 +258,7 @@ class SyncNearClient:
             master.view_function(contract_id, method_name, args)
         )
 
-        return result
+        return result.result
 
     def deploy_contract(self, account_id, wasm_binary):
         """

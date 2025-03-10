@@ -52,7 +52,7 @@ class NearAccount:
             Account balance in yoctoNEAR
         """
         try:
-            return self._rpc_client.get_balance(self._account_id)
+            return int(self._rpc_client.get_balance(self._account_id))
         except Exception as e:
             raise AccountError(f"Failed to get balance: {str(e)}") from e
 

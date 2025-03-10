@@ -5,6 +5,7 @@ import signal
 import subprocess
 import time
 import requests
+import json
 from pathlib import Path
 import tempfile
 import shutil
@@ -57,6 +58,7 @@ class SandboxManager:
 
         # Initialize the sandbox if needed
         validator_key_path = self._home_dir / "validator_key.json"
+        print(f"Validator key path: {validator_key_path}")
         if not validator_key_path.exists():
             print("Initializing sandbox...")
             self._run_command(["init", "--chain-id", "localnet"])
@@ -80,6 +82,13 @@ class SandboxManager:
         # Wait for sandbox to start
         self._wait_for_start()
 
+    def dump_state(self) -> dict:
+        """Runs the `dump-state` command, which writes a new Genesis file of the current state."""
+        self._run_command(["view-state", "dump-state"])
+        state_file = self._home_dir / "output.json"
+        with open(state_file, "r") as f:
+            return json.load(f)["records"]
+
     def stop(self):
         """Stop the sandbox process and clean up."""
         if self._process is not None:
@@ -95,9 +104,9 @@ class SandboxManager:
 
             self._process = None
 
-        # Clean up temporary directory if we created one
-        if self._temp_dir is not None and os.path.exists(self._temp_dir):
-            shutil.rmtree(self._temp_dir, ignore_errors=True)
+        # # Clean up temporary directory if we created one
+        # if self._temp_dir is not None and os.path.exists(self._temp_dir):
+        #     shutil.rmtree(self._temp_dir, ignore_errors=True)
 
     def reset_state(self):
         """Reset the sandbox state to genesis."""

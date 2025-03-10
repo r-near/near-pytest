@@ -55,7 +55,7 @@ class ContractProxy:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: int = DEFAULT_ATTACHED_GAS,
-    ) -> TransactionResult:
+    ) -> str:
         """
         Call a contract method as a different account.
 
@@ -69,7 +69,11 @@ class ContractProxy:
         Returns:
             Result of the method call
         """
-        return account.call(self.account_id, method_name, args, amount, gas)
+        result = account.call(self.account_id, method_name, args, amount, gas)
+        status = result.status
+        if "SuccessValue" not in status:
+            raise Exception(f"Error with function call: {result}")
+        return base64.b64decode(status["SuccessValue"]).decode("utf-8")
 
     def view(self, method_name: str, args: Optional[Dict[str, Any]] = None) -> Any:
         """
