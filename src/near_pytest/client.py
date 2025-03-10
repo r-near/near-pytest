@@ -1,10 +1,9 @@
-# near_pytest/client.py
 import asyncio
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
 import uuid
 
-from py_near.account import Account
+from py_near.account import Account as PyNearAccount
 from py_near.constants import DEFAULT_ATTACHED_GAS
 from nacl.signing import SigningKey
 import base58
@@ -17,7 +16,7 @@ class NearClient:
         self.rpc_endpoint = rpc_endpoint
         self.master_account_id = master_account_id
         self.master_key = master_key
-        self._accounts: Dict[str, Account] = {}  # Cache of accounts
+        self._accounts: Dict[str, PyNearAccount] = {}  # Cache of accounts
 
         # Initialize the event loop once
         self._loop = asyncio.new_event_loop()
@@ -32,13 +31,13 @@ class NearClient:
         if hasattr(self, "_loop") and self._loop and not self._loop.is_closed():
             self._loop.close()
 
-    def _run_async(self, coro):
+    def _run_async(self, coro) -> Any:
         """Simplified method to run async code synchronously"""
         return self._loop.run_until_complete(coro)
 
     def _get_or_create_account(
         self, account_id: str, private_key: Optional[str] = None
-    ) -> Account:
+    ) -> PyNearAccount:
         """Get or create a py-near Account"""
         if account_id in self._accounts:
             return self._accounts[account_id]
@@ -50,7 +49,7 @@ class NearClient:
             private_key = "ed25519:" + base58.b58encode(expanded_key).decode("utf-8")
 
         # Create and initialize the account
-        account = Account(account_id, private_key, rpc_addr=self.rpc_endpoint)
+        account = PyNearAccount(account_id, private_key, rpc_addr=self.rpc_endpoint)
         self._run_async(account.startup())
         self._accounts[account_id] = account
 
@@ -90,9 +89,9 @@ class NearClient:
         sender_id: str,
         contract_id: str,
         method_name: str,
-        args: Optional[Dict] = None,
+        args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
-        gas: int = DEFAULT_ATTACHED_GAS,
+        gas: Optional[int] = DEFAULT_ATTACHED_GAS,
     ) -> Any:
         """Call a contract function"""
         sender = self._get_or_create_account(sender_id)
@@ -110,7 +109,7 @@ class NearClient:
         return result
 
     def view_function(
-        self, contract_id: str, method_name: str, args: Optional[Dict] = None
+        self, contract_id: str, method_name: str, args: Optional[Dict[str, Any]] = None
     ) -> Any:
         """Call a view function"""
         result = self._run_async(

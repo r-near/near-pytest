@@ -1,4 +1,3 @@
-# near_pytest/__init__.py
 """
 near-pytest: A pytest-native approach for testing NEAR smart contracts in Python.
 """

@@ -1,35 +1,40 @@
-# near_pytest/testing.py
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, ClassVar
 import pytest
 
 from .sandbox import SandboxManager
-from near_pytest.client import NearClient
+from .client import NearClient
 from .models import Account, Contract
 
 
 class NearTestCase:
     """A simplified base class for NEAR smart contract tests"""
 
-    # Class-level shared resources
-    _sandbox = None
-    _client = None
-    _initial_state = None
+    # Class-level shared resources with proper type annotations
+    _sandbox: ClassVar[Optional[SandboxManager]] = None
+    _client: ClassVar[Optional[NearClient]] = None
+    _initial_state: ClassVar[Optional[list]] = None
+
+    # Account references that will be dynamically created
+    master: ClassVar[Optional[Account]] = None
 
     @classmethod
     def setup_class(cls):
         """Set up shared resources for the test class"""
         # Start the sandbox if not running
         cls._sandbox = SandboxManager.get_instance()
-        cls._sandbox.start()
+        if cls._sandbox:
+            cls._sandbox.start()
 
-        # Create the client
-        cls._client = NearClient(
-            cls._sandbox.rpc_endpoint(), "test.near", cls._sandbox.get_validator_key()
-        )
+            # Create the client
+            cls._client = NearClient(
+                cls._sandbox.rpc_endpoint(),
+                "test.near",
+                cls._sandbox.get_validator_key(),
+            )
 
-        # Create a reference to the master account
-        cls.master = Account(cls._client, "test.near")
+            # Create a reference to the master account
+            cls.master = Account(cls._client, "test.near")
 
     @classmethod
     def compile_contract(cls, contract_path: Union[str, Path]) -> Path:
@@ -43,6 +48,11 @@ class NearTestCase:
         cls, name: str, initial_balance: Optional[int] = None
     ) -> Account:
         """Create a new test account"""
+        if cls._client is None:
+            raise RuntimeError(
+                "Client not initialized. Make sure setup_class was called."
+            )
+
         account_id = cls._client.create_account(name, initial_balance)
         account = Account(cls._client, account_id)
 
@@ -59,6 +69,11 @@ class NearTestCase:
         init_args: Optional[Dict[str, Any]] = None,
     ) -> Contract:
         """Deploy a contract to an account"""
+        if cls._client is None:
+            raise RuntimeError(
+                "Client not initialized. Make sure setup_class was called."
+            )
+
         # Deploy the contract
         account.deploy_contract(wasm_path)
 
@@ -79,6 +94,11 @@ class NearTestCase:
     @classmethod
     def save_state(cls):
         """Save the current state for later reset"""
+        if cls._sandbox is None:
+            raise RuntimeError(
+                "Sandbox not initialized. Make sure setup_class was called."
+            )
+
         cls._initial_state = cls._sandbox.dump_state()
         print(f"State saved with {len(cls._initial_state)} records")
 
@@ -90,9 +110,14 @@ class NearTestCase:
             )
             return False
 
-        result = self._client._run_async(
-            self._client._master_account.provider.json_rpc(
-                "sandbox_patch_state", params={"records": self.__class__._initial_state}
+        if self.__class__._client is None:
+            raise RuntimeError(
+                "Client not initialized. Make sure setup_class was called."
+            )
+
+        result = self.__class__._client._run_async(
+            self.__class__._client._master_account.provider.json_rpc(
+                "sandbox_patch_state", {"records": self.__class__._initial_state}
             )
         )
 
