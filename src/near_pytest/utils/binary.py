@@ -5,10 +5,13 @@ import requests
 import tarfile
 from pathlib import Path
 import tempfile
-from .exceptions import BinaryError
 
 # Default sandbox version
 DEFAULT_VERSION = "2.4.0"
+
+
+class BinaryError(Exception):
+    pass
 
 
 def get_platform_id():
@@ -78,37 +81,37 @@ def download_binary(version=DEFAULT_VERSION):
             # Download the tar.gz file with requests
             response = requests.get(url, stream=True)
             response.raise_for_status()  # Raise an exception for HTTP errors
-            
-            with open(tar_path, 'wb') as f:
+
+            with open(tar_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-                    
+
             print(f"Download completed to {tar_path}")
-            
+
             # Extract directly to the binary directory with strip=1 (similar to tar.x({ strip: 1 }) in TS)
             # This removes the top-level directory (Linux-x86_64) during extraction
             with tarfile.open(tar_path, mode="r:gz") as tar:
                 # Get all members
                 members = tar.getmembers()
                 print(f"Archive members: {[m.name for m in members]}")
-                
+
                 # Strip the first directory component for each member
                 for member in members:
-                    parts = member.name.split('/', 1)
+                    parts = member.name.split("/", 1)
                     if len(parts) > 1:
                         member.name = parts[1]
-                
+
                 # Extract only the binary file, not directories
                 binary_members = [m for m in members if m.name == binary_name]
                 if not binary_members:
                     raise BinaryError(f"Binary '{binary_name}' not found in archive")
-                
+
                 # Extract directly to the binary path with the versioned name
                 for member in binary_members:
                     with tar.extractfile(member) as source:
-                        with open(binary_path, 'wb') as target:
+                        with open(binary_path, "wb") as target:
                             target.write(source.read())
-            
+
             # Make it executable
             os.chmod(binary_path, 0o755)
             print(f"Binary installed to {binary_path}")
@@ -130,9 +133,9 @@ def ensure_sandbox_binary(version=DEFAULT_VERSION):
         binary_name += ".exe"
 
     # Check if it's in PATH
-    # path_binary = shutil.which(binary_name)
-    # if path_binary:
-    #     return path_binary
+    path_binary = shutil.which(binary_name)
+    if path_binary:
+        return path_binary
 
     # Otherwise download it
     return download_binary(version)

@@ -1,12 +1,12 @@
-# examples/test_counter.py
-from near_pytest import NearTestCase
+# examples/test_counter_simplified.py
 from pathlib import Path
+from near_pytest.testing import NearTestCase
 
 
 class TestCounter(NearTestCase):
     @classmethod
     def setup_class(cls):
-        """Set up test class with all accounts and contracts."""
+        """Set up the test class"""
         # Call parent setup method
         super().setup_class()
 
@@ -23,16 +23,16 @@ class TestCounter(NearTestCase):
             cls.counter, wasm_path, init_args={"starting_count": 0}
         )
 
-        # Create user accounts
+        # Create test accounts
         cls.create_account("alice")
         cls.create_account("bob")
 
-        # Explicitly save state for later reset
+        # Save state for reset
         cls.save_state()
 
     def setup_method(self):
-        """Set up for each test method."""
-        # Reset the state to what it was after setup_class
+        """Set up each test method"""
+        # Reset to initial state
         self.reset_state()
 
     def test_increment(self):
@@ -40,12 +40,12 @@ class TestCounter(NearTestCase):
         result = self.counter_contract.call("increment", {})
         assert int(result) == 1
 
-        # Call again to verify state persistence within a test
+        # Call again to verify state persistence
         result = self.counter_contract.call("increment", {})
         assert int(result) == 2
 
     def test_increment_as_alice(self):
-        # Each test starts with fresh state because of reset_state() in setup_method
+        # Each test starts with fresh state
         result = self.counter_contract.call_as(self.alice, "increment", {})
         assert int(result) == 1
 
