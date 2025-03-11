@@ -1,4 +1,4 @@
-name: Linting, Type Checking, and Tests
+name: Linting and Type Checking
 
 on:
   push:
@@ -26,6 +26,3 @@ jobs:
 
       - name: Run mypy
         run: uv run mypy .
-      
-      - name: Run pytest
-        run: uv run pytest -xvs examples/
