@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.0 (2025-03-11)
+
+### Features
+
+- **models**: Return tuple of results
+  ([`4b9a387`](https://github.com/r-near/near-pytest/commit/4b9a38753f720a452409812922d0473fc79dd803))
+
+
 ## v0.3.0 (2025-03-11)
 
 ### Features
