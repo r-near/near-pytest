@@ -14,15 +14,17 @@ class TestCounter(NearTestCase):
         contract_path = current_dir / "counter_contract" / "__init__.py"
         wasm_path = cls.compile_contract(contract_path, single_file=True)
 
-        # Create account for contract - automatically stored as cls.counter
-        cls.create_account("counter")
+        # Create account for contract
+        cls.counter = cls.create_account("counter")
 
-        # Deploy contract - automatically stored as cls.counter_contract
-        cls.deploy_contract(cls.counter, wasm_path, init_args={"starting_count": 0})
+        # Deploy contract
+        cls.counter_contract = cls.deploy_contract(
+            cls.counter, wasm_path, init_args={"starting_count": 0}
+        )
 
-        # Create test accounts - automatically stored as cls.alice and cls.bob
-        cls.create_account("alice")
-        cls.create_account("bob")
+        # Create test accounts
+        cls.alice = cls.create_account("alice")
+        cls.bob = cls.create_account("bob")
 
         # Save state for reset
         cls.save_state()
