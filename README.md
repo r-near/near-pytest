@@ -8,11 +8,12 @@ A pytest-native framework for testing NEAR smart contracts in Python.
 [![Python Versions](https://img.shields.io/badge/python-3.11+-blue)](https://pypi.org/project/near-pytest/)
 [![Built with Pytest](https://img.shields.io/badge/built%20with-pytest-brightgreen.svg)](https://docs.pytest.org/)
 
-[Features](#features) •
-[Installation](#installation) •
-[Getting Started](#getting-started) •
-[Examples](#examples) •
-[API Reference](#api-reference)
+✨ [Features](#features) &nbsp;•&nbsp;
+📥 [Installation](#installation) &nbsp;•&nbsp;
+🚀 [Getting Started](#getting-started) &nbsp;•&nbsp;
+📊 [Examples](#examples) &nbsp;•&nbsp;
+📘 [API Reference](#api-reference)
+
 
 ## Overview
 
