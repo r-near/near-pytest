@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.0 (2025-03-11)
+
+### Features
+
+- **client**: Add a `view_account` method
+  ([`f949b46`](https://github.com/r-near/near-pytest/commit/f949b46b77295970f9c3647978cbdd3f2454995a))
+
+
 ## v0.2.1 (2025-03-11)
 
 ### Bug Fixes
