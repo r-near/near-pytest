@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.2.1 (2025-03-11)
+
+### Bug Fixes
+
+- **models**: Proper exception naming
+  ([`23c9ad7`](https://github.com/r-near/near-pytest/commit/23c9ad77a4ebb84e3277df227e55dce9e637bbf0))
+
+
 ## v0.2.0 (2025-03-11)
 
 ### Features
