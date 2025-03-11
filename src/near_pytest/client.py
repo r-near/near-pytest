@@ -179,3 +179,8 @@ class NearClient:
 
         result = self._run_async(account.deploy_contract(wasm_binary))
         return result
+
+    def view_account(self, account_id: str) -> Any:
+        """Get account information"""
+        result = self._run_async(self._master_account._provider.get_account(account_id))
+        return result
