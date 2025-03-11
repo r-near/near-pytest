@@ -28,9 +28,6 @@ dev = [
 module = ["nearc", "nearc.builder"]
 follow_untyped_imports = true
 
-[tool.uv.sources]
-py-near = { git = "https://github.com/r-near/py-near" }
-
 [tool.semantic_release]
 version_toml = [
     "pyproject.toml:project.version"
@@ -39,3 +36,6 @@ branch = "main"
 changelog_file = "CHANGELOG.md"
 commit_message = "chore(release): {version} [skip ci]"
 build_command = "uv build"
+
+[tool.uv.sources]
+py-near = { git = "https://github.com/r-near/py-near" }

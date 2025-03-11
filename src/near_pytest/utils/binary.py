@@ -6,6 +6,9 @@ import tarfile
 from pathlib import Path
 import tempfile
 
+# Import logger
+from ..utils import logger
+
 # Default sandbox version
 DEFAULT_VERSION = "2.4.0"
 
@@ -54,7 +57,7 @@ def get_binary_url(version=DEFAULT_VERSION):
 
 def download_binary(version=DEFAULT_VERSION):
     """Download the sandbox binary for the current platform."""
-    print("Downloading binary")
+    logger.info("Downloading NEAR sandbox binary")
     binary_dir = get_binary_dir()
     system, arch = get_platform_id()
     binary_name = "near-sandbox"
@@ -62,16 +65,16 @@ def download_binary(version=DEFAULT_VERSION):
         binary_name += ".exe"
 
     binary_path = binary_dir / f"{binary_name}-{version}"
-    print(f"Target binary path: {binary_path}")
+    logger.debug(f"Target binary path: {binary_path}")
 
     # Skip if already exists
     if binary_path.exists():
-        print("Binary already exists, skipping download")
+        logger.info("Binary already exists, skipping download")
         return binary_path
 
     # Download the binary
     url = get_binary_url(version)
-    print(f"Downloading NEAR sandbox binary from {url}")
+    logger.info(f"Downloading from {url}")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -86,14 +89,14 @@ def download_binary(version=DEFAULT_VERSION):
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-            print(f"Download completed to {tar_path}")
+            logger.debug(f"Download completed to {tar_path}")
 
             # Extract directly to the binary directory with strip=1 (similar to tar.x({ strip: 1 }) in TS)
             # This removes the top-level directory (Linux-x86_64) during extraction
             with tarfile.open(tar_path, mode="r:gz") as tar:
                 # Get all members
                 members = tar.getmembers()
-                print(f"Archive members: {[m.name for m in members]}")
+                logger.debug(f"Archive members: {[m.name for m in members]}")
 
                 # Strip the first directory component for each member
                 for member in members:
@@ -114,7 +117,7 @@ def download_binary(version=DEFAULT_VERSION):
 
             # Make it executable
             os.chmod(binary_path, 0o755)
-            print(f"Binary installed to {binary_path}")
+            logger.success(f"Binary installed to {binary_path}")
 
             return binary_path
 
@@ -127,7 +130,8 @@ def download_binary(version=DEFAULT_VERSION):
 
 def ensure_sandbox_binary(version=DEFAULT_VERSION):
     """Ensure the sandbox binary is available and return its path."""
-    print("Ensuring sandbox binary...")
+    print()  # Empty print to add a newline for pytest
+    logger.debug("Ensuring sandbox binary...")
     binary_name = "near-sandbox"
     if platform.system().lower() == "windows":
         binary_name += ".exe"
@@ -135,6 +139,7 @@ def ensure_sandbox_binary(version=DEFAULT_VERSION):
     # Check if it's in PATH
     path_binary = shutil.which(binary_name)
     if path_binary:
+        logger.info(f"Found sandbox binary in PATH: {path_binary}")
         return path_binary
 
     # Otherwise download it

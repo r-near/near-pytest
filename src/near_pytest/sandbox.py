@@ -10,6 +10,9 @@ from pathlib import Path
 import tempfile
 import shutil
 
+# Import logger
+from .utils import logger
+
 
 class SandboxError(Exception):
     """Error related to sandbox operations"""
@@ -46,6 +49,7 @@ class SandboxManager:
     def start(self):
         """Start the sandbox process"""
         if self.is_running():
+            logger.debug("Sandbox already running")
             return
 
         # Ensure binary is available
@@ -59,11 +63,11 @@ class SandboxManager:
         # Initialize if needed
         validator_key_path = self._home_dir / "validator_key.json"
         if not validator_key_path.exists():
-            print("Initializing sandbox...")
+            logger.info("Initializing sandbox...")
             self._run_command(["init", "--chain-id", "localnet"])
 
         # Start the sandbox
-        print(f"Starting sandbox on port {self._port}...")
+        logger.info(f"Starting sandbox on port {self._port}...")
         self._process = subprocess.Popen(
             [
                 self._binary_path,
@@ -84,10 +88,13 @@ class SandboxManager:
     def stop(self):
         """Stop the sandbox process"""
         if self._process is not None:
+            logger.info("Stopping sandbox...")
             try:
                 os.killpg(os.getpgid(self._process.pid), signal.SIGTERM)
                 self._process.wait(timeout=5)
+                logger.success("Sandbox stopped")
             except (subprocess.TimeoutExpired, ProcessLookupError):
+                logger.warning("Sandbox didn't stop gracefully, forcing shutdown...")
                 try:
                     os.killpg(os.getpgid(self._process.pid), signal.SIGKILL)
                 except ProcessLookupError:
@@ -97,13 +104,17 @@ class SandboxManager:
 
     def dump_state(self) -> list:
         """Dump the current state"""
+        logger.info("Dumping sandbox state...")
         self._run_command(["view-state", "dump-state"])
         state_file = self._home_dir / "output.json"
         with open(state_file, "r") as f:
-            return json.load(f)["records"]
+            state = json.load(f)["records"]
+            logger.debug(f"Dumped {len(state)} state records")
+            return state
 
     def reset_state(self):
         """Reset to genesis state by restarting"""
+        logger.info("Resetting sandbox to genesis state...")
         self.stop()
 
         # Clean up data directory
@@ -113,6 +124,7 @@ class SandboxManager:
 
         # Restart
         self.start()
+        logger.success("Sandbox reset to genesis state")
 
     def rpc_endpoint(self) -> str:
         """Get the RPC endpoint URL"""
@@ -160,18 +172,25 @@ class SandboxManager:
     def _run_command(self, args: list):
         """Run a sandbox command"""
         cmd = [self._binary_path, "--home", str(self._home_dir)] + args
+        logger.debug(f"Running command: {' '.join(str(x) for x in cmd)}")
         try:
-            subprocess.run(
+            result = subprocess.run(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
             )
+            logger.debug(f"Command output: {result.stdout.decode()[:200]}...")
+            return result
         except subprocess.CalledProcessError as e:
-            raise SandboxError(f"Sandbox command failed: {e.stderr.decode()}")
+            error_msg = e.stderr.decode()
+            logger.error(f"Sandbox command failed: {error_msg}")
+            raise SandboxError(f"Sandbox command failed: {error_msg}")
 
     def _wait_for_start(self, timeout=30, interval=0.5):
         """Wait for sandbox to start"""
+        logger.info(f"Waiting for sandbox to start (timeout: {timeout}s)...")
         start_time = time.time()
         while time.time() - start_time < timeout:
             if self.is_running():
+                logger.success("Sandbox started successfully")
                 return
             time.sleep(interval)
 
