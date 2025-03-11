@@ -9,6 +9,7 @@ on:
 env:
   EM_VERSION: 4.0.4
   EM_CACHE_FOLDER: 'emsdk-cache'
+  NEAR_PYTEST_LOG_LEVEL: DEBUG
 
 jobs:
   tests:
@@ -28,12 +29,16 @@ jobs:
           path: ${{env.EM_CACHE_FOLDER}}
           key: ${{env.EM_VERSION}}-${{ runner.os }}
 
-      - name: Setup build directory cache
+      - name: Setup build and pytest directories cache
         uses: actions/cache@v4
         with:
-          path: examples/build
-          key: build-${{ runner.os }}-${{ hashFiles('examples/**') }}
+          path: |
+            examples/build
+            examples/*/build
+            ~/.near-pytest
+          key: build-${{ runner.os }}-${{ hashFiles('examples/**') }}-${{ github.sha }}
           restore-keys: |
+            build-${{ runner.os }}-${{ hashFiles('examples/**') }}-
             build-${{ runner.os }}-
 
       - name: Setup emsdk
