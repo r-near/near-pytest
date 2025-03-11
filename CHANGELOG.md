@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.1.2 (2025-03-11)
+
+### Bug Fixes
+
+- **ci**: Add build directory cache for tests
+  ([`b3787e1`](https://github.com/r-near/near-pytest/commit/b3787e17ae28fa57ea83b3006c5109271bd63296))
+
+
 ## v0.1.1 (2025-03-11)
 
 ### Bug Fixes
