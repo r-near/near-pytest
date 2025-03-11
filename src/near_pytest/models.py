@@ -165,7 +165,7 @@ class Account:
         if "SuccessValue" in status:
             return base64.b64decode(status["SuccessValue"]).decode("utf-8")
         else:
-            raise ContractCallError(f"Error calling function: {result}")
+            raise ContractCallError("Error calling function", result)
 
 
 class Contract:
