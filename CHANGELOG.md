@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.2 (2025-03-11)
+
+### Bug Fixes
+
+- **deps**: Use published dependency
+  ([`091f13b`](https://github.com/r-near/near-pytest/commit/091f13beb0c06afc7f902047e6dafd2805d9cfe0))
+
+
 ## v0.4.1 (2025-03-11)
 
 ### Bug Fixes
