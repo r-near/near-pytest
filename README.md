@@ -1,222 +1,292 @@
+
 # near-pytest
 
-A pytest-native approach for testing NEAR smart contracts in Python.
+A pytest-native framework for testing NEAR smart contracts in Python.
+
+[![PyPI version](https://img.shields.io/badge/pypi-0.1.0-blue.svg)](https://pypi.org/project/near-pytest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Versions](https://img.shields.io/badge/python-3.11+-blue)](https://pypi.org/project/near-pytest/)
+[![Built with Pytest](https://img.shields.io/badge/built%20with-pytest-brightgreen.svg)](https://docs.pytest.org/)
+
+[Features](#features) •
+[Installation](#installation) •
+[Getting Started](#getting-started) •
+[Examples](#examples) •
+[API Reference](#api-reference)
+
+## Overview
+
+`near-pytest` enables intuitive testing of NEAR smart contracts directly from Python. It provides a pytest-native approach that automatically handles compilation, sandbox initialization, account creation, contract deployment, and state management - allowing you to focus on writing tests that truly validate your contract's behavior.
 
 ## Features
 
-- Class-based test framework that integrates with pytest
-- Automatic sandbox management (download, start, stop)
-- Smart contract compilation with `nearc`
-- Easy account creation and management
-- State reset between tests
-- Intuitive contract interaction API
-- Integration with py-near for blockchain interaction
+🚀 **Zero-config setup** - Everything works out-of-the-box: automatic sandbox management, contract compilation, and account creation
+
+⚡ **Lightning-fast tests** - State snapshots between tests eliminate repeated setup operations, making test suites run orders of magnitude faster than traditional approaches
+
+🧩 **Intuitive API** - Simple, Pythonic interfaces for interacting with contracts and accounts
+
+🔄 **State snapshots** - Create a full blockchain state once, then reset to this state between tests in milliseconds instead of seconds
+
+🛠️ **Complete toolchain integration** - Seamless integration with [NEAR compiler](https://github.com/r-near/nearc), [Python SDK](https://github.com/r-near/near-sdk-py), and [sandbox](https://github.com/near/near-sandbox)
+
+🧪 **Pytest native** - Leverages the full power of pytest for smart contract testing
+
+🔍 **Rich logging** - Detailed logs for troubleshooting and debugging
+
+🧠 **Smart caching** - Automatically caches compiled contracts for faster subsequent runs
 
 ## Installation
 
-Basic installation:
-
 ```bash
-pip install near-pytest
+uv add near-pytest
 ```
 
-With py-near integration (recommended):
+### Prerequisites
 
-```bash
-pip install near-pytest[pynear]
-```
+- Python 3.11 or higher
+- For contract compilation: `nearc` package
+- The framework automatically handles downloading and installing the NEAR sandbox binary
 
-## Requirements
+## Getting Started
 
-- Python 3.9+
-- nearc (for contract compilation)
-  - Install with `pip install nearc`
-- py-near (for RPC interaction)
-  - Included with `pip install near-pytest[pynear]`
-
-## Quick Start
-
-Here's a simple example of testing a counter contract:
+### 1. Create a test file
 
 ```python
-from near_pytest import NearTestCase
+from near_pytest.testing import NearTestCase
+
+
+class TestMyContract(NearTestCase):
+    @classmethod
+    def setup_class(cls):
+        # Call parent setup method first
+        super().setup_class()
+        
+        # Compile the contract
+        wasm_path = cls.compile_contract("path/to/contract.py", single_file=True)
+        
+        # Create account for contract
+        cls.contract_account = cls.create_account("mycontract")
+        
+        # Deploy contract
+        cls.contract = cls.deploy_contract(
+            cls.contract_account, 
+            wasm_path, 
+            init_args={"param1": "value1"}
+        )
+        
+        # Create test accounts
+        cls.alice = cls.create_account("alice")
+        cls.bob = cls.create_account("bob")
+        
+        # Save initial state for future resets
+        cls.save_state()
+
+    def setup_method(self):
+        # Reset to initial state before each test method
+        self.reset_state()
+
+    def test_my_function(self):
+        # Call contract method
+        result = self.contract.call("my_function", {"param": "value"})
+        assert result == "expected_result"
+        
+    def test_as_alice(self):
+        # Call as another account
+        result = self.contract.call_as(self.alice, "my_function", {"param": "value"})
+        assert result == "expected_result"
+```
+
+### 2. Run your tests
+
+```bash
+pytest test_my_contract.py -v
+```
+
+## Examples
+
+### Counter Contract Example
+
+```python
+from near_pytest.testing import NearTestCase
 from pathlib import Path
 
 class TestCounter(NearTestCase):
     @classmethod
     def setup_class(cls):
-        # Call the parent setup method
         super().setup_class()
         
-        # Compile the contract once for all tests
+        # Compile the contract
         current_dir = Path(__file__).parent
         contract_path = current_dir / "counter_contract" / "__init__.py"
-        cls.counter_wasm = cls.compile_contract(contract_path)
-    
-    def setup_method(self):
-        # Reset sandbox state before each test
-        self.reset_sandbox()
+        wasm_path = cls.compile_contract(contract_path, single_file=True)
         
-        # Create account for contract
-        self.contract_account = self.create_account("counter")
-        
-        # Deploy contract
-        self.counter = self.deploy_contract(
-            self.contract_account, 
-            self.counter_wasm,
-            init_args={"starting_count": 0}
+        # Create and deploy contract
+        cls.counter = cls.create_account("counter")
+        cls.counter_contract = cls.deploy_contract(
+            cls.counter, wasm_path, init_args={"starting_count": 0}
         )
         
-        # Create user accounts
-        self.alice = self.create_account("alice")
-        self.bob = self.create_account("bob")
-    
+        # Create users
+        cls.alice = cls.create_account("alice")
+        
+        # Save state for reset
+        cls.save_state()
+        
+    def setup_method(self):
+        # Reset before each test
+        self.reset_state()
+        
     def test_increment(self):
-        # Call contract method
-        result = self.counter.call("increment", {})
-        assert result == 1
+        # Each test starts with a fresh state
+        result = self.counter_contract.call("increment", {})
+        assert int(result) == 1
         
-        # Call again to verify state persistence within a test
-        result = self.counter.call("increment", {})
-        assert result == 2
-    
-    def test_increment_as_alice(self):
-        # Each test starts with fresh state
-        result = self.counter.call_as(self.alice, "increment", {})
-        assert result == 1
-    
+        # State persists within the test
+        result = self.counter_contract.call("increment", {})
+        assert int(result) == 2
+        
     def test_get_count(self):
-        # Call view method
-        result = self.counter.view("get_count", {})
-        assert result == 0
-        
-        # Call increment then view again
-        self.counter.call("increment", {})
-        result = self.counter.view("get_count", {})
-        assert result == 1
+        # This test starts fresh with count=0
+        result = self.counter_contract.view("get_count", {})
+        assert int(result) == 0
 ```
 
-## How It Works
+## Key Concepts
 
-1. The `NearTestCase` base class provides utilities for testing NEAR smart contracts.
-2. The sandbox is started automatically when needed and shared across all tests.
-3. Each test gets a fresh blockchain state to work with.
-4. Contracts are compiled with `nearc` and cached for efficiency.
-5. Test accounts are created with unique names to prevent conflicts.
-6. **Integration with py-near** provides the communication layer with the NEAR blockchain.
+### 1. NearTestCase
 
-## Integration with py-near
+The main base class for your tests, providing helper methods for contract compilation, account creation, and state management.
 
-The library uses a synchronous wrapper around py-near's async API to make testing simpler:
+### 2. Smart Contract Compilation
+
+`near-pytest` automatically handles compilation of your Python smart contracts to WASM using the NEAR SDK for Python.
 
 ```python
-from near_pytest import SyncNearClient
-
-# Create a client
-client = SyncNearClient("http://localhost:3030", "my-account.near", "ed25519:...")
-
-# Call contract methods
-result = client.call_function(
-    sender_id="my-account.near",
-    contract_id="counter.near",
-    method_name="increment",
-    args={}
-)
-
-# View contract state
-count = client.view_function(
-    contract_id="counter.near",
-    method_name="get_count",
-    args={}
-)
+wasm_path = cls.compile_contract("path/to/contract.py", single_file=True)
 ```
+
+The compilation process includes:
+- Automatic caching of compiled contracts (based on content hash)
+- Support for single-file contracts or multi-file projects
+- Seamless integration with the `nearc` compiler
+
+### 3. Sandbox Management
+
+The framework automatically:
+- Downloads the appropriate NEAR sandbox binary for your platform
+- Manages sandbox lifecycle (start/stop)
+- Provides methods for state manipulation
+
+### 4. Account Management
+
+Create test accounts with a single line:
+
+```python
+cls.alice = cls.create_account("alice")
+```
+
+Each account is automatically:
+- Created with a unique identifier
+- Funded with NEAR tokens
+- Associated with a key pair
+
+### 5. Contract Deployment
+
+Deploy contracts to accounts and initialize them:
+
+```python
+cls.contract = cls.deploy_contract(cls.account, wasm_path, init_args={"param": "value"})
+```
+
+### 6. State Management
+
+Save and restore state for fast test execution:
+
+```python
+# Save initial state once
+cls.save_state()
+
+# Reset to initial state before each test
+self.reset_state()
+```
+
+This state management is what makes near-pytest tests run significantly faster than traditional approaches that need to re-deploy the contract and accounts for each test.
 
 ## API Reference
 
-### `NearTestCase`
+### NearTestCase
 
-Base class for NEAR contract test cases.
+Base class for NEAR contract tests.
 
 #### Class Methods
 
-- `compile_contract(contract_path)`: Compile a contract and return the path to the WASM file.
-- `get_root_account()`: Get the root account (with lots of funds).
+- `setup_class()`: Set up shared resources for the test class
+- `compile_contract(contract_path, single_file=False)`: Compile a contract to WASM
+- `create_account(name, initial_balance=None)`: Create a new test account
+- `deploy_contract(account, wasm_path, init_args=None)`: Deploy a contract
+- `save_state()`: Save the current state for later reset
 
 #### Instance Methods
 
-- `reset_sandbox()`: Reset the sandbox state.
-- `create_account(name, initial_balance=None)`: Create a new account with the specified name.
-- `deploy_contract(account, wasm_path, init_args=None)`: Deploy a contract to the specified account.
+- `reset_state()`: Reset to the previously saved state
 
-### `ContractProxy`
+### Account
 
-Provides a convenient interface for interacting with deployed contracts.
+A simplified account model for testing.
 
 #### Methods
 
-- `call(method_name, args=None, amount=0, gas=None)`: Call a contract method.
-- `call_as(account, method_name, args=None, amount=0, gas=None)`: Call a contract method as a different account.
-- `view(method_name, args=None)`: Call a view method on the contract.
+- `call_contract(contract_id, method_name, args=None, amount=0, gas=None)`: Call a contract method
+- `view_contract(contract_id, method_name, args=None)`: Call a view method
+- `deploy_contract(wasm_file)`: Deploy a contract to this account
 
-### `NearAccount`
+### Contract
 
-Represents an account on the NEAR blockchain.
-
-#### Methods
-
-- `create_subaccount(name, initial_balance=None)`: Create a sub-account.
-- `balance()`: Get the account balance in yoctoNEAR.
-- `call(contract_id, method_name, args=None, amount=0, gas=None)`: Call a contract method.
-- `view(contract_id, method_name, args=None)`: Call a view method on a contract.
-- `transfer(receiver_id, amount)`: Transfer NEAR tokens to another account.
-- `deploy_contract(wasm_file)`: Deploy a contract to this account.
-
-### `SyncNearClient`
-
-Synchronous wrapper around py-near's async API.
+A simplified contract model for testing.
 
 #### Methods
 
-- `create_account(name, initial_balance=None)`: Create a new account.
-- `get_balance(account_id)`: Get account balance in yoctoNEAR.
-- `call_function(sender_id, contract_id, method_name, args=None, amount=0, gas=None)`: Call a contract function.
-- `view_function(contract_id, method_name, args=None)`: Call a view function.
-- `deploy_contract(account_id, wasm_binary)`: Deploy a contract to an account.
-- `send_tokens(sender_id, receiver_id, amount)`: Send NEAR tokens from one account to another.
+- `call(method_name, args=None, amount=0, gas=None)`: Call as the contract account
+- `call_as(account, method_name, args=None, amount=0, gas=None)`: Call as another account
+- `view(method_name, args=None)`: Call a view method
 
-## Running Tests
+## Contributing
 
-To run tests with near-pytest, simply use pytest as usual:
-
-```bash
-pytest -xvs tests/
-```
-
-### pytest options
-
-The plugin adds the following pytest options:
-
-- `--near-home`: Path to NEAR home directory for the sandbox.
-- `--near-port`: Port for the NEAR sandbox RPC server (default: 3030).
-- `--near-reset`: Reset the NEAR sandbox before running tests.
-
-## Development
-
-To set up the development environment:
-
-```bash
-# Clone the repository
-git clone https://github.com/near/near-pytest.git
-cd near-pytest
-
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install development dependencies
-pip install -e ".[dev]"
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Environment Variables
+
+You can customize the behavior of near-pytest using these environment variables:
+
+- `NEAR_PYTEST_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
+- `NEAR_SANDBOX_HOME`: Specify a custom home directory for the sandbox
+
+## Architecture
+
+near-pytest consists of several core components:
+
+- **SandboxManager**: Handles the NEAR sandbox process lifecycle
+- **NearClient**: Manages communication with the NEAR RPC interface 
+- **Account/Contract**: Simplified models for interacting with the blockchain
+- **NearTestCase**: Base class that ties everything together for testing
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Sandbox doesn't start**
+   - Check if port 3030 is available
+   - Ensure you have proper permissions to execute downloaded binaries
+
+2. **Contract compilation fails**
+   - Verify that the nearc package is installed
+   - Check Python version compatibility (3.11+ required)
+
+3. **Slow test execution**
+   - Ensure you're using `save_state()` and `reset_state()` pattern
+   - Verify if cache directory (~/.near-pytest/cache) exists and is writeable
