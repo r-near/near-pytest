@@ -15,7 +15,7 @@ class CompilerError(Exception):
     pass
 
 
-def compile_contract(contract_path):
+def compile_contract(contract_path, single_file=False):
     """Compile a NEAR smart contract"""
     contract_path = Path(contract_path).resolve()
 
@@ -59,7 +59,12 @@ def compile_contract(contract_path):
             logger.debug(f"Virtual environment path: {venv_path}")
 
             success = nearc_compile(
-                contract_path, output_path, venv_path, assets_dir, False
+                contract_path=contract_path,
+                output_path=output_path,
+                venv_path=venv_path,
+                assets_dir=assets_dir,
+                rebuild=False,
+                single_file=single_file,
             )
 
             if not success or not output_path.exists():

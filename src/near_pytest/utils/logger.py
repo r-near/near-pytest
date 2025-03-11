@@ -18,8 +18,8 @@ def configure_logging(level=None):
     """Configure the logger with the specified level."""
     # Determine log level from environment variable if not specified
     if level is None:
-        env_level = os.environ.get("NEAR_PYTEST_LOG_LEVEL", "INFO").upper()
-        level = getattr(logging, env_level, logging.INFO)
+        env_level = os.environ.get("NEAR_PYTEST_LOG_LEVEL", "ERROR").upper()
+        level = getattr(logging, env_level, logging.ERROR)
 
     # Clear any existing handlers
     for handler in logger.handlers[:]:

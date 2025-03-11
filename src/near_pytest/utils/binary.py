@@ -130,7 +130,6 @@ def download_binary(version=DEFAULT_VERSION):
 
 def ensure_sandbox_binary(version=DEFAULT_VERSION):
     """Ensure the sandbox binary is available and return its path."""
-    print()  # Empty print to add a newline for pytest
     logger.debug("Ensuring sandbox binary...")
     binary_name = "near-sandbox"
     if platform.system().lower() == "windows":

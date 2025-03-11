@@ -13,7 +13,7 @@ class TestCounter(NearTestCase):
         # Compile the contract
         current_dir = Path(__file__).parent
         contract_path = current_dir / "counter_contract" / "__init__.py"
-        wasm_path = cls.compile_contract(contract_path)
+        wasm_path = cls.compile_contract(contract_path, single_file=True)
 
         # Create account for contract
         cls.create_account("counter")

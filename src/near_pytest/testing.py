@@ -21,6 +21,7 @@ class NearTestCase:
     @classmethod
     def setup_class(cls):
         """Set up shared resources for the test class"""
+        print()
         logger.info(f"Setting up {cls.__name__} test class")
         # Start the sandbox if not running
         cls._sandbox = SandboxManager.get_instance()
@@ -39,12 +40,14 @@ class NearTestCase:
             logger.debug(f"Master account reference created: {cls.master.account_id}")
 
     @classmethod
-    def compile_contract(cls, contract_path: Union[str, Path]) -> Path:
+    def compile_contract(
+        cls, contract_path: Union[str, Path], single_file: bool = False
+    ) -> Path:
         """Compile a contract"""
         from .compiler import compile_contract
 
         logger.info(f"Compiling contract: {contract_path}")
-        result = compile_contract(contract_path)
+        result = compile_contract(contract_path, single_file)
         logger.success(f"Contract compiled: {result}")
         return result
 
