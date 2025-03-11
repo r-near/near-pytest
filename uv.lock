@@ -520,12 +520,12 @@ wheels = [
 
 [[package]]
 name = "near-pytest"
-version = "0.1.2"
+version = "0.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "base58" },
     { name = "nearc" },
-    { name = "py-near" },
+    { name = "py-near-fork" },
     { name = "pynacl" },
     { name = "pytest" },
     { name = "requests" },
@@ -542,7 +542,7 @@ dev = [
 requires-dist = [
     { name = "base58", specifier = ">=2.1.1" },
     { name = "nearc", specifier = ">=0.7.0" },
-    { name = "py-near", git = "https://github.com/r-near/py-near" },
+    { name = "py-near-fork", specifier = ">=0.1.1" },
     { name = "pynacl", specifier = ">=1.5.0" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "requests", specifier = ">=2.32.3" },
@@ -602,9 +602,9 @@ wheels = [
 ]
 
 [[package]]
-name = "py-near"
-version = "1.2.0"
-source = { git = "https://github.com/r-near/py-near#e19a5ef47b3801176fa280d1f99ae6f31d0ee21d" }
+name = "py-near-fork"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "base58" },
     { name = "frozenlist" },
@@ -614,6 +614,10 @@ dependencies = [
     { name = "pydantic" },
     { name = "pynacl" },
     { name = "ruff" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/11/522e9da372b15e24c9141f33808d7a09e1bb5627c9989bd018503a29bc0a/py_near_fork-0.1.1.tar.gz", hash = "sha256:e2df2ba35988140bbaccb1ff009100d845009d6c9fb4b516a8351842e7d1b3d4", size = 77917 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/46/aadc385e69a2dd4bb4361b7c3710532794aeda986e8c5ca53559d0a9af23/py_near_fork-0.1.1-py3-none-any.whl", hash = "sha256:142743793af6516778cd1f5ac70609c3cd8fa1c9c27b90dc85cde47439495e84", size = 27261 },
 ]
 
 [[package]]

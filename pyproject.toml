@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "base58>=2.1.1",
     "nearc>=0.7.0",
-    "py-near",
+    "py-near-fork>=0.1.1",
     "pynacl>=1.5.0",
     "pytest>=8.3.5",
     "requests>=2.32.3",
@@ -36,6 +36,3 @@ branch = "main"
 changelog_file = "CHANGELOG.md"
 commit_message = "chore(release): {version} [skip ci]"
 build_command = "uv build"
-
-[tool.uv.sources]
-py-near = { git = "https://github.com/r-near/py-near" }
