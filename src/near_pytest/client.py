@@ -1,7 +1,6 @@
 import asyncio
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
-import uuid
 
 from py_near.account import Account as PyNearAccount
 from py_near.constants import DEFAULT_ATTACHED_GAS
@@ -60,8 +59,7 @@ class NearClient:
 
     def create_account(self, name: str, initial_balance: Optional[int] = None) -> str:
         """Create a new account as a subaccount of the master account"""
-        unique_id = str(uuid.uuid4())[:8]
-        account_id = f"{name}-{unique_id}.{self.master_account_id}"
+        account_id = f"{name}.{self.master_account_id}"
 
         # Generate new key pair
         key_pair = SigningKey.generate()
@@ -84,6 +82,54 @@ class NearClient:
         self._get_or_create_account(account_id, private_key)
 
         return account_id
+
+    def create_subaccount(
+        self,
+        parent_account_id: str,
+        subaccount_name: str,
+        initial_balance: Optional[int] = None,
+    ) -> str:
+        """
+        Create a subaccount under a specified parent account
+
+        Args:
+            parent_account_id: The account ID of the parent account
+            subaccount_name: The name for the new subaccount (without the parent prefix)
+            initial_balance: Initial balance in yoctoNEAR (10^-24 NEAR)
+
+        Returns:
+            The full account ID of the newly created subaccount
+        """
+        # Ensure parent account exists in our cache
+        if parent_account_id not in self._accounts:
+            raise ValueError(
+                f"Parent account {parent_account_id} not found or not initialized"
+            )
+
+        parent_account = self._accounts[parent_account_id]
+        subaccount_id = f"{subaccount_name}.{parent_account_id}"
+
+        # Generate new key pair for subaccount
+        key_pair = SigningKey.generate()
+        public_key = "ed25519:" + base58.b58encode(bytes(key_pair.verify_key)).decode(
+            "utf-8"
+        )
+        expanded_key = key_pair._signing_key
+        private_key = "ed25519:" + base58.b58encode(expanded_key).decode("utf-8")
+
+        # Use the parent account to create the subaccount
+        self._run_async(
+            parent_account.create_account(
+                subaccount_id,
+                public_key,
+                initial_balance or 1_000_000_000_000_000_000_000_000,  # Default 1 NEAR
+            )
+        )
+
+        # Initialize and cache the subaccount
+        self._get_or_create_account(subaccount_id, private_key)
+
+        return subaccount_id
 
     def call_function(
         self,
