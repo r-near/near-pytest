@@ -5,6 +5,7 @@ import uuid
 
 from py_near.account import Account as PyNearAccount
 from py_near.constants import DEFAULT_ATTACHED_GAS
+from py_near.models import TransactionResult
 from nacl.signing import SigningKey
 import base58
 
@@ -92,7 +93,7 @@ class NearClient:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
-    ) -> Any:
+    ) -> Union[TransactionResult, str]:
         """Call a contract function"""
         sender = self._get_or_create_account(sender_id)
         if gas is None:
