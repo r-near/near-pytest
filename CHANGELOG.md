@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.1 (2025-03-11)
+
+### Bug Fixes
+
+- **tests**: Fix broken test
+  ([`c010f7c`](https://github.com/r-near/near-pytest/commit/c010f7cd3b9582c81015b8c664c9da78cf281ed4))
+
+
 ## v0.4.0 (2025-03-11)
 
 ### Features
