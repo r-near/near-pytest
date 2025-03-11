@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.1.1 (2025-03-11)
+
+### Bug Fixes
+
+- **ci**: Split lint and test jobs, add emcc
+  ([`754e673`](https://github.com/r-near/near-pytest/commit/754e6735f8c069c237367984aac376cbaa81ce7d))
+
+### Chores
+
+- **docs**: Update README
+  ([`6e2f663`](https://github.com/r-near/near-pytest/commit/6e2f66318fe004170e4a2ec8345d54563686c587))
+
+
 ## v0.1.0 (2025-03-11)
 
 ### Bug Fixes
