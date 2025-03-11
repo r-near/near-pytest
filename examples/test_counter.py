@@ -1,4 +1,3 @@
-# examples/test_counter_simplified.py
 from pathlib import Path
 from near_pytest.testing import NearTestCase
 
@@ -15,15 +14,13 @@ class TestCounter(NearTestCase):
         contract_path = current_dir / "counter_contract" / "__init__.py"
         wasm_path = cls.compile_contract(contract_path, single_file=True)
 
-        # Create account for contract
+        # Create account for contract - automatically stored as cls.counter
         cls.create_account("counter")
 
-        # Deploy contract
-        cls.counter_contract = cls.deploy_contract(
-            cls.counter, wasm_path, init_args={"starting_count": 0}
-        )
+        # Deploy contract - automatically stored as cls.counter_contract
+        cls.deploy_contract(cls.counter, wasm_path, init_args={"starting_count": 0})
 
-        # Create test accounts
+        # Create test accounts - automatically stored as cls.alice and cls.bob
         cls.create_account("alice")
         cls.create_account("bob")
 
@@ -31,7 +28,7 @@ class TestCounter(NearTestCase):
         cls.save_state()
 
     def setup_method(self):
-        """Set up each test method"""
+        """Set up each test method by resetting to initial state"""
         # Reset to initial state
         self.reset_state()
 

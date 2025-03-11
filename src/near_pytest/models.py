@@ -1,6 +1,7 @@
-# near_pytest/models.py
-from typing import Dict, Any, Optional, TYPE_CHECKING
+from typing import Dict, Any, Optional, TYPE_CHECKING, List, Union
 from py_near.constants import DEFAULT_ATTACHED_GAS
+from py_near.models import TransactionResult
+from .utils.logger import logger
 import base64
 
 # Prevent circular imports while still enabling type checking
@@ -8,8 +9,22 @@ if TYPE_CHECKING:
     from .client import NearClient
 
 
+class ContractCallError(Exception):
+    """Error raised when a contract call fails"""
+
+    pass
+
+
 class Account:
-    """A simplified account model"""
+    """A simplified account model for interacting with the NEAR blockchain.
+
+    This class provides a high-level abstraction for account operations such as
+    calling contracts, viewing contract state, and deploying contracts.
+
+    Attributes:
+        client: The NearClient instance used for RPC communication
+        account_id: The NEAR account ID
+    """
 
     def __init__(self, client: "NearClient", account_id: str):
         self.client = client
@@ -22,31 +37,94 @@ class Account:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
-    ) -> Any:
-        """Call a contract method"""
+    ) -> str:
+        """Call a contract method.
+
+        Args:
+            contract_id: The contract account ID
+            method_name: The contract method to call
+            args: Arguments to pass to the method
+            amount: Amount of NEAR tokens to attach (in yoctoNEAR)
+            gas: Amount of gas to attach
+
+        Returns:
+            The result of the contract call as a string
+
+        Raises:
+            ContractCallError: If the contract call fails
+        """
         result = self.client.call_function(
             self.account_id, contract_id, method_name, args, amount, gas
         )
+
+        return self._process_call_result(result)
+
+    def view_contract(
+        self, contract_id: str, method_name: str, args: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """Call a view method on a contract.
+
+        Args:
+            contract_id: The contract account ID
+            method_name: The view method to call
+            args: Arguments to pass to the method
+
+        Returns:
+            The result of the view method call
+        """
+        return self.client.view_function(contract_id, method_name, args)
+
+    def deploy_contract(self, wasm_file) -> Any:
+        """Deploy a contract to this account.
+
+        Args:
+            wasm_file: Path to the WASM file or WASM binary data
+
+        Returns:
+            The result of the deployment operation
+        """
+        return self.client.deploy_contract(self.account_id, wasm_file)
+
+    def _process_call_result(self, result: Union[str, TransactionResult]) -> str:
+        """Process the result of a contract call.
+
+        Args:
+            result: The result from the client call
+
+        Returns:
+            The parsed success value as a string
+
+        Raises:
+            ContractCallError: If the contract call failed
+        """
+        if isinstance(result, str):
+            return result
+
+        # Print contract logs
+        logs: List[str] = []
+        for ro in result.receipt_outcome:
+            logs.extend(ro.logs)
+        if logs:
+            logger.info("Contract Logs:")
+            logger.info("\n".join(logs))
 
         status = result.status
         if "SuccessValue" in status:
             return base64.b64decode(status["SuccessValue"]).decode("utf-8")
         else:
-            raise Exception(f"Error calling function: {result}")
-
-    def view_contract(
-        self, contract_id: str, method_name: str, args: Optional[Dict[str, Any]] = None
-    ) -> Any:
-        """Call a view method on a contract"""
-        return self.client.view_function(contract_id, method_name, args)
-
-    def deploy_contract(self, wasm_file) -> Any:
-        """Deploy a contract to this account"""
-        return self.client.deploy_contract(self.account_id, wasm_file)
+            raise ContractCallError(f"Error calling function: {result}")
 
 
 class Contract:
-    """A simplified contract model"""
+    """A simplified contract model for interacting with NEAR smart contracts.
+
+    This class provides a high-level abstraction for contract operations such as
+    calling methods and viewing contract state.
+
+    Attributes:
+        client: The NearClient instance used for RPC communication
+        account_id: The contract account ID
+    """
 
     def __init__(self, client: "NearClient", contract_account_id: str):
         self.client = client
@@ -58,17 +136,26 @@ class Contract:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
-    ) -> Any:
-        """Call the contract as itself"""
+    ) -> str:
+        """Call the contract as itself.
+
+        Args:
+            method_name: The contract method to call
+            args: Arguments to pass to the method
+            amount: Amount of NEAR tokens to attach (in yoctoNEAR)
+            gas: Amount of gas to attach
+
+        Returns:
+            The result of the contract call as a string
+
+        Raises:
+            ContractCallError: If the contract call fails
+        """
         result = self.client.call_function(
             self.account_id, self.account_id, method_name, args, amount, gas
         )
 
-        status = result.status
-        if "SuccessValue" in status:
-            return base64.b64decode(status["SuccessValue"]).decode("utf-8")
-        else:
-            raise Exception(f"Error calling function: {result}")
+        return self._process_call_result(result)
 
     def call_as(
         self,
@@ -77,18 +164,65 @@ class Contract:
         args: Optional[Dict[str, Any]] = None,
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
-    ) -> Any:
-        """Call the contract as a different account"""
+    ) -> str:
+        """Call the contract as a different account.
+
+        Args:
+            account: The account to call the contract as
+            method_name: The contract method to call
+            args: Arguments to pass to the method
+            amount: Amount of NEAR tokens to attach (in yoctoNEAR)
+            gas: Amount of gas to attach
+
+        Returns:
+            The result of the contract call as a string
+
+        Raises:
+            ContractCallError: If the contract call fails
+        """
         result = self.client.call_function(
             account.account_id, self.account_id, method_name, args, amount, gas
         )
+
+        return self._process_call_result(result)
+
+    def view(self, method_name: str, args: Optional[Dict[str, Any]] = None) -> Any:
+        """Call a view method on the contract.
+
+        Args:
+            method_name: The view method to call
+            args: Arguments to pass to the method
+
+        Returns:
+            The result of the view method call
+        """
+        return self.client.view_function(self.account_id, method_name, args)
+
+    def _process_call_result(self, result: Union[str, TransactionResult]) -> str:
+        """Process the result of a contract call.
+
+        Args:
+            result: The result from the client call
+
+        Returns:
+            The parsed success value as a string
+
+        Raises:
+            ContractCallError: If the contract call failed
+        """
+        if isinstance(result, str):
+            return result
+
+        # Print contract logs
+        logs: List[str] = []
+        for ro in result.receipt_outcome:
+            logs.extend(ro.logs)
+        if logs:
+            logger.info("Contract Logs:")
+            logger.info("\n".join(logs))
 
         status = result.status
         if "SuccessValue" in status:
             return base64.b64decode(status["SuccessValue"]).decode("utf-8")
         else:
-            raise Exception(f"Error calling function: {result}")
-
-    def view(self, method_name: str, args: Optional[Dict[str, Any]] = None) -> Any:
-        """Call a view method on the contract"""
-        return self.client.view_function(self.account_id, method_name, args)
+            raise ContractCallError(f"Error calling function: {result}")
