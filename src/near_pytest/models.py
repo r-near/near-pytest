@@ -12,7 +12,60 @@ if TYPE_CHECKING:
 class ContractCallError(Exception):
     """Error raised when a contract call fails"""
 
-    pass
+    def __init__(
+        self, message: str, transaction_result: Optional[TransactionResult] = None
+    ):
+        self.transaction_result = transaction_result
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        if not self.transaction_result:
+            return self.message
+
+        tx = self.transaction_result
+        error_info = {
+            "message": self.message,
+            "transaction_hash": tx.transaction.hash,
+            "signer": tx.transaction.signer_id,
+            "receiver": tx.transaction.receiver_id,
+        }
+
+        # Extract method call and arguments from transaction actions
+        for action in tx.transaction.actions:
+            if action.transactions_type == "FunctionCall":
+                error_info["method_name"] = action.method_name
+                error_info["args"] = action.args
+                error_info["gas"] = action.gas
+                error_info["deposit"] = action.deposit
+                break
+
+        # Add logs
+        error_info["logs"] = tx.logs
+
+        # Transaction status details
+        if "Failure" in tx.status:
+            error_info["failure_details"] = tx.status["Failure"]
+
+        # Extract detailed error from transaction outcome
+        if tx.transaction_outcome.error:
+            error_info["transaction_error"] = str(tx.transaction_outcome.error)
+
+        # Extract any receipt errors
+        if tx.receipt_outcome:
+            receipt_errors = []
+            for i, ro in enumerate(tx.receipt_outcome):
+                if ro.error:
+                    receipt_errors.append(
+                        {"receipt_id": ro.receipt_id, "error": str(ro.error)}
+                    )
+
+            if receipt_errors:
+                error_info["receipt_errors"] = receipt_errors
+
+        import json
+
+        return json.dumps(error_info, indent=2, default=str)
 
 
 class Account:
@@ -214,15 +267,11 @@ class Contract:
             return result
 
         # Print contract logs
-        logs: List[str] = []
-        for ro in result.receipt_outcome:
-            logs.extend(ro.logs)
-        if logs:
-            logger.info("Contract Logs:")
-            logger.info("\n".join(logs))
+        logger.info("Contract Logs:")
+        logger.info("\n".join(result.logs))
 
         status = result.status
         if "SuccessValue" in status:
             return base64.b64decode(status["SuccessValue"]).decode("utf-8")
         else:
-            raise ContractCallError(f"Error calling function: {result}")
+            raise ContractCallError("Error calling function", result)
