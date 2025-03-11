@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.1.3 (2025-03-11)
+
+### Bug Fixes
+
+- **ci**: Add more caching
+  ([`1d935dd`](https://github.com/r-near/near-pytest/commit/1d935dd974569cd996f5c08b282b5d567990e2ec))
+
+
 ## v0.1.2 (2025-03-11)
 
 ### Bug Fixes
