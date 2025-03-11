@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.2.0 (2025-03-11)
+
+### Features
+
+- Support sub-accounts
+  ([`0d1d871`](https://github.com/r-near/near-pytest/commit/0d1d871ad5c7c3d2c3f5313b74ca0434a054e4bc))
+
+
 ## v0.1.3 (2025-03-11)
 
 ### Bug Fixes
