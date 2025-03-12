@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import tempfile
 import shutil
+import socket
 
 # Import logger
 from .utils import logger
@@ -34,17 +35,25 @@ class SandboxManager:
 
     def __init__(self, home_dir=None, port=None):
         """Initialize the sandbox manager"""
+        # Generate unique port if not specified
+        self._port = port or self._get_available_port()
+        # Generate unique home directory if not specified
         self._home_dir = (
             Path(home_dir)
             if home_dir
-            else Path(tempfile.mkdtemp(prefix="near_sandbox_"))
+            else Path(tempfile.mkdtemp(prefix=f"near_sandbox_{self._port}_"))
         )
-        self._port = port or 3030
         self._process = None
         self._binary_path = None
 
         # Register cleanup
         atexit.register(self.stop)
+
+    def _get_available_port(self):
+        # Find an available port dynamically
+        with socket.socket() as s:
+            s.bind(("", 0))
+            return s.getsockname()[1]
 
     def start(self):
         """Start the sandbox process"""
@@ -76,6 +85,8 @@ class SandboxManager:
                 "run",
                 "--rpc-addr",
                 f"0.0.0.0:{self._port}",
+                "--network-addr",
+                f"0.0.0.0:{self._get_available_port()}",
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

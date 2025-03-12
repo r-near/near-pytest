@@ -48,4 +48,4 @@ jobs:
             actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
       - name: Run tests
-        run: uv run pytest -xvs examples/
+        run: uv run pytest -n auto --dist=loadscope -xvs examples/

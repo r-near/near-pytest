@@ -23,8 +23,9 @@ class NearTestCase:
         """Set up shared resources for the test class"""
         print()
         logger.info(f"Setting up {cls.__name__} test class")
-        # Start the sandbox if not running
-        cls._sandbox = SandboxManager.get_instance()
+
+        # Create a new sandbox instance for this test class
+        cls._sandbox = SandboxManager()
         if cls._sandbox:
             cls._sandbox.start()
 
@@ -38,6 +39,13 @@ class NearTestCase:
             # Create a reference to the master account
             cls.master = Account(cls._client, "test.near")
             logger.debug(f"Master account reference created: {cls.master.account_id}")
+
+    @classmethod
+    def teardown_class(cls):
+        """Tear down shared resources for the test class"""
+        if cls._sandbox:
+            cls._sandbox.stop()
+            cls._sandbox = None
 
     @classmethod
     def compile_contract(
