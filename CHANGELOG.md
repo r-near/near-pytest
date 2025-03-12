@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.1 (2025-03-12)
+
+### Bug Fixes
+
+- **deps**: New version of NEARC
+  ([`1e954c1`](https://github.com/r-near/near-pytest/commit/1e954c185501348b123f6cc05113f1d4304384c7))
+
+
 ## v0.5.0 (2025-03-12)
 
 ### Features
