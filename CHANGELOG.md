@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.0 (2025-03-12)
+
+### Features
+
+- Support parallelization with pytest-xdist
+  ([`4261bda`](https://github.com/r-near/near-pytest/commit/4261bdae3ec0b35c483e2bea4a377d06544020a7))
+
+
 ## v0.4.2 (2025-03-11)
 
 ### Bug Fixes
