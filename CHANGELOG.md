@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.2 (2025-03-13)
+
+### Bug Fixes
+
+- **deps**: Update nearc
+  ([`1ebbe6f`](https://github.com/r-near/near-pytest/commit/1ebbe6f67446a8981601eb6670bfd6fbf7ce2cfe))
+
+
 ## v0.5.1 (2025-03-12)
 
 ### Bug Fixes
