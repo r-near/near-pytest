@@ -322,4 +322,5 @@ class Contract:
         Returns:
             The result of the view method call
         """
-        return self.client.view_function(self.account_id, method_name, args)
+        result = self.client.view_function(self.account_id, method_name, args)
+        return ContractResponse.from_result(result)
