@@ -529,7 +529,7 @@ wheels = [
 
 [[package]]
 name = "near-pytest"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "." }
 dependencies = [
     { name = "base58" },
@@ -551,7 +551,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "base58", specifier = ">=2.1.1" },
-    { name = "nearc", specifier = ">=0.8.0" },
+    { name = "nearc", specifier = ">=0.8.1" },
     { name = "py-near-fork", specifier = ">=0.1.1" },
     { name = "pynacl", specifier = ">=1.5.0" },
     { name = "pytest", specifier = ">=8.3.5" },
@@ -568,7 +568,7 @@ dev = [
 
 [[package]]
 name = "nearc"
-version = "0.8.0"
+version = "0.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "near-abi-py" },
@@ -580,9 +580,9 @@ dependencies = [
     { name = "types-zstd" },
     { name = "zstd" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/6c/3eb66b2fccdf64180adfff19385fbe2cda6076e4764a63c6916569621011/nearc-0.8.0.tar.gz", hash = "sha256:ef075cd0a40e7486007322c3621d96eb3981ec64db5df60cd8b62831c180a26e", size = 8356403 }
+sdist = { url = "https://files.pythonhosted.org/packages/22/a3/6b35ab704551207b2d0e4dd086e346db22420b52d22548f78ecc172d08a9/nearc-0.8.1.tar.gz", hash = "sha256:3778f55c02c69b8f6d052c7bd286e2851732f1c229b917792896a1a365daa3b1", size = 8356453 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8d/cc/072a5ce9a8f8ac6bf93fea9bc45e9916f28a673f0b8c87ec451be7941b4b/nearc-0.8.0-py3-none-any.whl", hash = "sha256:ea9cbce42bcfacc37860fcbbe1856e2edac9e684994697a38414cfbd4557d32f", size = 11595682 },
+    { url = "https://files.pythonhosted.org/packages/7f/df/96a1e9c272ff55233ef1bddb7eebb46ac862937e1e63e56cc763be999c51/nearc-0.8.1-py3-none-any.whl", hash = "sha256:59b769a1c92a429d1f9f3461014c8b48a17eb1c7e2c8ecdb7f9fc6d3f547c312", size = 11595689 },
 ]
 
 [[package]]
