@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.5.3 (2025-03-14)
+
+### Bug Fixes
+
+- **deps**: Update NEARC to latest
+  ([`197c5aa`](https://github.com/r-near/near-pytest/commit/197c5aadf1e6c7a703db6890dac9e3ffb7841e25))
+
+### Chores
+
+- **deps**: Create dependabot.yml
+  ([`6bcf9dc`](https://github.com/r-near/near-pytest/commit/6bcf9dc297bb9dc65e7cd94ce9747efc2ea22c93))
+
+
 ## v0.5.2 (2025-03-13)
 
 ### Bug Fixes
