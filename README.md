@@ -1,4 +1,3 @@
-
 # near-pytest
 
 A pytest-native framework for testing NEAR smart contracts in Python.
@@ -36,6 +35,8 @@ A pytest-native framework for testing NEAR smart contracts in Python.
 🔍 **Rich logging** - Detailed logs for troubleshooting and debugging
 
 🧠 **Smart caching** - Automatically caches compiled contracts for faster subsequent runs
+
+✨ **Requests-like Response API** - Familiar interface for handling contract responses with `.json()` method and `.text` property
 
 ## Installation
 
@@ -90,12 +91,17 @@ class TestMyContract(NearTestCase):
     def test_my_function(self):
         # Call contract method
         result = self.contract.call("my_function", {"param": "value"})
-        assert result == "expected_result"
+        assert result.text == "expected_result"
+        
+        # If the result is JSON, you can parse it directly
+        if result.text.startswith("{") or result.text.startswith("["):
+            data = result.json()
+            assert data["some_field"] == "expected_value"
         
     def test_as_alice(self):
         # Call as another account
         result = self.contract.call_as(self.alice, "my_function", {"param": "value"})
-        assert result == "expected_result"
+        assert result.text == "expected_result"
 ```
 
 ### 2. Run your tests
@@ -141,16 +147,32 @@ class TestCounter(NearTestCase):
     def test_increment(self):
         # Each test starts with a fresh state
         result = self.counter_contract.call("increment", {})
-        assert int(result) == 1
+        assert int(result.text) == 1
         
         # State persists within the test
         result = self.counter_contract.call("increment", {})
-        assert int(result) == 2
+        assert int(result.text) == 2
         
     def test_get_count(self):
         # This test starts fresh with count=0
         result = self.counter_contract.view("get_count", {})
         assert int(result) == 0
+```
+
+### JSON Response Example
+
+```python
+def test_json_response(self):
+    # Call a method that returns JSON data
+    response = self.contract.call("get_user_data", {"user_id": "alice"})
+    
+    # Parse the JSON response
+    data = response.json()
+    
+    # Assert on the parsed data
+    assert data["name"] == "Alice"
+    assert data["score"] == 100
+    assert "created_at" in data
 ```
 
 ## Key Concepts
@@ -214,6 +236,21 @@ self.reset_state()
 
 This state management is what makes near-pytest tests run significantly faster than traditional approaches that need to re-deploy the contract and accounts for each test.
 
+### 7. ContractResponse
+
+Contract call responses are wrapped in a `ContractResponse` object that provides a familiar interface similar to Python's `requests` library:
+
+```python
+# Get the raw text response
+text_content = response.text
+
+# Parse JSON response
+json_data = response.json()
+
+# String representation
+str_value = str(response)  # Same as response.text
+```
+
 ## API Reference
 
 ### NearTestCase
@@ -252,6 +289,19 @@ A simplified contract model for testing.
 - `call_as(account, method_name, args=None, amount=0, gas=None)`: Call as another account
 - `view(method_name, args=None)`: Call a view method
 
+### ContractResponse
+
+A wrapper for contract call responses that provides a familiar interface for handling response data.
+
+#### Properties
+
+- `text`: Get the raw text response as a string
+- `transaction_result`: Access the underlying transaction result (if available)
+
+#### Methods
+
+- `json()`: Parse the response as JSON and return the resulting Python object
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -274,6 +324,7 @@ near-pytest consists of several core components:
 - **SandboxManager**: Handles the NEAR sandbox process lifecycle
 - **NearClient**: Manages communication with the NEAR RPC interface 
 - **Account/Contract**: Simplified models for interacting with the blockchain
+- **ContractResponse**: Wraps contract call responses with a user-friendly API
 - **NearTestCase**: Base class that ties everything together for testing
 
 ## Troubleshooting
