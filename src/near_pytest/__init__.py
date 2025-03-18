@@ -8,7 +8,7 @@ from .client import NearClient
 from .models import Account, Contract, ContractCallError
 from .sandbox import SandboxManager
 from .compiler import compile_contract
-from . import modular
+from . import fixtures
 
 __version__ = "0.1.0"
 
@@ -20,5 +20,5 @@ __all__ = [
     "ContractCallError",
     "SandboxManager",
     "compile_contract",
-    "modular",
+    "fixtures",
 ]

@@ -9,7 +9,7 @@ import pytest
 from pathlib import Path
 
 # Import the modular testing components
-from near_pytest.modular import compile_contract
+from near_pytest.fixtures import compile_contract, sandbox, create_account, sandbox_alice, sandbox_bob, temp_account # noqa: F401
 
 
 @pytest.fixture(scope="session")
@@ -21,7 +21,7 @@ def counter_wasm():
 
 
 @pytest.fixture(scope="session")
-def shared_counter(sandbox, counter_wasm):
+def shared_counter(sandbox, counter_wasm):  # noqa: F811
     """
     Deploy a counter contract that's shared between tests.
 
@@ -40,7 +40,7 @@ def shared_counter(sandbox, counter_wasm):
 
 
 @pytest.fixture
-def fresh_counter(sandbox, counter_wasm, temp_account):
+def fresh_counter(sandbox, counter_wasm, temp_account):  # noqa: F811
     """
     Deploy a fresh counter contract for each test.
 
@@ -55,7 +55,7 @@ def fresh_counter(sandbox, counter_wasm, temp_account):
     return contract
 
 
-def test_increment_shared(shared_counter, sandbox_alice):
+def test_increment_shared(shared_counter, sandbox_alice):  # noqa: F811
     """Test incrementing the shared counter as Alice."""
     # Get initial count
     initial_count = int(shared_counter.call("get_count").as_view())
@@ -71,7 +71,7 @@ def test_increment_shared(shared_counter, sandbox_alice):
     assert new_count == initial_count + 1
 
 
-def test_decrement_shared(shared_counter, sandbox_bob):
+def test_decrement_shared(shared_counter, sandbox_bob):  # noqa: F811
     """Test decrementing the shared counter as Bob."""
     # Get initial count (which includes changes from previous tests)
     initial_count = int(shared_counter.call("get_count").as_view())
@@ -83,7 +83,7 @@ def test_decrement_shared(shared_counter, sandbox_bob):
     assert int(result) == initial_count - 1
 
 
-def test_increment_fresh(fresh_counter, sandbox_alice):
+def test_increment_fresh(fresh_counter, sandbox_alice):  # noqa: F811
     """
     Test incrementing a fresh counter.
 
@@ -99,7 +99,7 @@ def test_increment_fresh(fresh_counter, sandbox_alice):
     assert int(result) == 2
 
 
-def test_multiple_accounts(fresh_counter, create_account):
+def test_multiple_accounts(fresh_counter, create_account):  # noqa: F811
     """
     Test using multiple dynamically created accounts.
 
@@ -121,7 +121,7 @@ def test_multiple_accounts(fresh_counter, create_account):
     assert int(count) == 3
 
 
-def test_reset(fresh_counter, sandbox_bob):
+def test_reset(fresh_counter, sandbox_bob):  # noqa: F811
     """Test resetting the counter."""
     # Increment a few times
     fresh_counter.call("increment").as_transaction(sandbox_bob)
@@ -135,7 +135,7 @@ def test_reset(fresh_counter, sandbox_bob):
     assert int(count) == 5
 
 
-def test_state_persistence(sandbox, counter_wasm):
+def test_state_persistence(sandbox, counter_wasm):  # noqa: F811
     """
     Test saving and restoring sandbox state.
 
