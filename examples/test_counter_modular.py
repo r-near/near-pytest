@@ -9,7 +9,14 @@ import pytest
 from pathlib import Path
 
 # Import the modular testing components
-from near_pytest.fixtures import compile_contract, sandbox, create_account, sandbox_alice, sandbox_bob, temp_account # noqa: F401
+from near_pytest.fixtures import (  # noqa: F401
+    compile_contract,
+    sandbox,
+    create_account,
+    sandbox_alice,
+    sandbox_bob,
+    temp_account,
+)
 
 
 @pytest.fixture(scope="session")
