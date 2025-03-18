@@ -37,3 +37,6 @@ branch = "main"
 changelog_file = "CHANGELOG.md"
 commit_message = "chore(release): {version} [skip ci]"
 build_command = "uv build"
+
+[project.entry-points.pytest11]
+near_pytest = "near_pytest.fixtures"
