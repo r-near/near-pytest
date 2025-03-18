@@ -7,17 +7,7 @@ simple counter contract with clean, readable tests.
 
 import pytest
 from pathlib import Path
-
-# Import the modular testing components
-from near_pytest.fixtures import (  # noqa: F401
-    compile_contract,
-    sandbox,
-    create_account,
-    sandbox_alice,
-    sandbox_bob,
-    temp_account,
-)
-
+from near_pytest import compile_contract # Helper method, you can use nearc
 
 @pytest.fixture(scope="session")
 def counter_wasm():
@@ -28,7 +18,7 @@ def counter_wasm():
 
 
 @pytest.fixture(scope="session")
-def shared_counter(sandbox, counter_wasm):  # noqa: F811
+def shared_counter(sandbox, counter_wasm):
     """
     Deploy a counter contract that's shared between tests.
 
@@ -47,7 +37,7 @@ def shared_counter(sandbox, counter_wasm):  # noqa: F811
 
 
 @pytest.fixture
-def fresh_counter(sandbox, counter_wasm, temp_account):  # noqa: F811
+def fresh_counter(sandbox, counter_wasm, localnet_temp_account):
     """
     Deploy a fresh counter contract for each test.
 
@@ -56,19 +46,19 @@ def fresh_counter(sandbox, counter_wasm, temp_account):  # noqa: F811
     """
     # Deploy and initialize the contract in one step
     contract = sandbox.deploy(
-        wasm_path=counter_wasm, account=temp_account, init_args={"starting_count": 0}
+        wasm_path=counter_wasm, account=localnet_temp_account, init_args={"starting_count": 0}
     )
 
     return contract
 
 
-def test_increment_shared(shared_counter, sandbox_alice):  # noqa: F811
+def test_increment_shared(shared_counter, localnet_alice_account):
     """Test incrementing the shared counter as Alice."""
     # Get initial count
     initial_count = int(shared_counter.call("get_count").as_view())
 
     # Increment as Alice
-    result = shared_counter.call("increment").as_transaction(sandbox_alice)
+    result = shared_counter.call("increment").as_transaction(localnet_alice_account)
 
     # Assert the result is as expected
     assert int(result) == initial_count + 1
@@ -78,19 +68,19 @@ def test_increment_shared(shared_counter, sandbox_alice):  # noqa: F811
     assert new_count == initial_count + 1
 
 
-def test_decrement_shared(shared_counter, sandbox_bob):  # noqa: F811
+def test_decrement_shared(shared_counter, localnet_bob_account):
     """Test decrementing the shared counter as Bob."""
     # Get initial count (which includes changes from previous tests)
     initial_count = int(shared_counter.call("get_count").as_view())
 
     # Decrement as Bob
-    result = shared_counter.call("decrement").as_transaction(sandbox_bob)
+    result = shared_counter.call("decrement").as_transaction(localnet_bob_account)
 
     # Assert the result is as expected
     assert int(result) == initial_count - 1
 
 
-def test_increment_fresh(fresh_counter, sandbox_alice):  # noqa: F811
+def test_increment_fresh(fresh_counter, localnet_alice_account):
     """
     Test incrementing a fresh counter.
 
@@ -98,23 +88,23 @@ def test_increment_fresh(fresh_counter, sandbox_alice):  # noqa: F811
     to ensure test isolation.
     """
     # This always starts with count=0 because we use a fresh contract
-    result = fresh_counter.call("increment").as_transaction(sandbox_alice)
+    result = fresh_counter.call("increment").as_transaction(localnet_alice_account)
     assert int(result) == 1
 
     # Increment again
-    result = fresh_counter.call("increment").as_transaction(sandbox_alice)
+    result = fresh_counter.call("increment").as_transaction(localnet_alice_account)
     assert int(result) == 2
 
 
-def test_multiple_accounts(fresh_counter, create_account):  # noqa: F811
+def test_multiple_accounts(fresh_counter, sandbox):
     """
     Test using multiple dynamically created accounts.
 
     This test demonstrates creating accounts on demand.
     """
     # Create two random accounts
-    user1 = create_account()
-    user2 = create_account()
+    user1 = sandbox.create_random_account("user")
+    user2 = sandbox.create_random_account("user")
 
     # User 1 increments
     fresh_counter.call("increment").as_transaction(user1)
@@ -128,21 +118,21 @@ def test_multiple_accounts(fresh_counter, create_account):  # noqa: F811
     assert int(count) == 3
 
 
-def test_reset(fresh_counter, sandbox_bob):  # noqa: F811
+def test_reset(fresh_counter, localnet_bob_account):
     """Test resetting the counter."""
     # Increment a few times
-    fresh_counter.call("increment").as_transaction(sandbox_bob)
-    fresh_counter.call("increment").as_transaction(sandbox_bob)
+    fresh_counter.call("increment").as_transaction(localnet_bob_account)
+    fresh_counter.call("increment").as_transaction(localnet_bob_account)
 
     # Reset to 5
-    fresh_counter.call("reset", value=5).as_transaction(sandbox_bob)
+    fresh_counter.call("reset", value=5).as_transaction(localnet_bob_account)
 
     # Verify reset worked
     count = fresh_counter.call("get_count").as_view()
     assert int(count) == 5
 
 
-def test_state_persistence(sandbox, counter_wasm):  # noqa: F811
+def test_state_persistence(sandbox, counter_wasm):
     """
     Test saving and restoring sandbox state.
 

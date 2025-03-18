@@ -61,7 +61,8 @@ You can choose between two testing approaches:
 
 ```python
 import pytest
-from near_pytest.fixtures import sandbox, compile_contract, sandbox_alice, sandbox_bob
+from near_pytest.fixtures import sandbox, localnet_alice_account, localnet_bob_account
+from near_pytest.compiler import compile_contract
 
 @pytest.fixture(scope="session")
 def counter_wasm():
@@ -78,10 +79,10 @@ def counter_contract(sandbox, counter_wasm):
         init_args={"starting_count": 0}
     )
 
-def test_increment(counter_contract, sandbox_alice):
+def test_increment(counter_contract, localnet_alice_account):
     """Test incrementing the counter."""
     # Call contract method using method chaining
-    result = counter_contract.call("increment").as_transaction(sandbox_alice)
+    result = counter_contract.call("increment").as_transaction(localnet_alice_account)
     assert int(result) == 1
     
     # View state
@@ -289,6 +290,34 @@ self.reset_state()
 
 - `as_transaction(account, amount=0, gas=None)`: Execute as a transaction
 - `as_view()`: Execute as a view call
+
+#### Helper Functions
+
+- `compile_contract(contract_path, single_file=False)`: Helper function to compile a contract to WASM
+
+### Using nearc Directly
+
+If you prefer to use the NEAR compiler (nearc) directly for more control over the compilation process:
+
+```python
+import nearc
+
+# Compile your contract with custom options
+wasm_path = nearc.builder.compile_contract(
+    contract_path="path/to/contract.py", 
+    output_path="path/to/output.wasm",
+    single_file=True
+)
+```
+
+### Network Distinction
+
+Our fixtures use a naming convention to distinguish between different networks:
+
+- `sandbox` - The main fixture that provides access to the NEAR sandbox node
+- `localnet_alice`, `localnet_bob`, `localnet_temp_account` - Account fixtures that operate on the local network
+
+This distinction allows for future expansion to other networks like testnet or mainnet while maintaining a clear separation of concerns.
 
 ### NearTestCase Methods
 

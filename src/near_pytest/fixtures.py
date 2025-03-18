@@ -1,7 +1,7 @@
 """
 Modular fixtures for near-pytest.
 
-This module provides a pytest-native approach to NEAR contract testing that
+This module provides a pytest-native approach to NEAR smart contracts testing that
 focuses on:
 1. Simple, composable fixtures that follow pytest conventions
 2. Method chaining for contract calls to improve test readability
@@ -11,10 +11,10 @@ focuses on:
 Getting started:
 ```python
 # Import the fixtures you need
-from near_pytest.modular import sandbox, compile_contract
+from near_pytest.fixtures import sandbox, localnet_alice_account
 
 # Use the fixtures in your tests
-def test_my_contract(sandbox, sandbox_alice):
+def test_my_contract(sandbox, localnet_alice_account):
     # Your test code here
     pass
 ```
@@ -126,6 +126,7 @@ class SandboxProxy:
         self.client = client
         self.sandbox = sandbox
         self.master_account_id: str = "test.near"
+        self.network = "localnet"  # Identifies this as using the local network
 
     def create_account(self, name: str) -> Account:
         """
@@ -231,7 +232,6 @@ class SandboxProxy:
 
 # Main fixtures for pytest
 
-
 @pytest.fixture(scope="session")
 def sandbox() -> Generator[SandboxProxy, None, None]:
     """
@@ -273,9 +273,9 @@ def near_client(sandbox: SandboxProxy) -> NearClient:
 
 
 @pytest.fixture(scope="session")
-def sandbox_alice(sandbox: SandboxProxy) -> Account:
+def localnet_alice_account(sandbox: SandboxProxy) -> Account:
     """
-    Create a test account named 'alice'.
+    Create a test account named 'alice' on the localnet.
 
     This fixture creates a reusable account named 'alice' that
     can be used across multiple tests.
@@ -284,9 +284,9 @@ def sandbox_alice(sandbox: SandboxProxy) -> Account:
 
 
 @pytest.fixture(scope="session")
-def sandbox_bob(sandbox: SandboxProxy) -> Account:
+def localnet_bob_account(sandbox: SandboxProxy) -> Account:
     """
-    Create a test account named 'bob'.
+    Create a test account named 'bob' on the localnet.
 
     This fixture creates a reusable account named 'bob' that
     can be used across multiple tests.
@@ -295,9 +295,9 @@ def sandbox_bob(sandbox: SandboxProxy) -> Account:
 
 
 @pytest.fixture
-def temp_account(sandbox: SandboxProxy) -> Account:
+def localnet_temp_account(sandbox: SandboxProxy) -> Account:
     """
-    Create a temporary account with a random name.
+    Create a temporary account with a random name on the localnet.
 
     This fixture creates a new account with a random name for each test,
     ensuring test isolation when needed.
@@ -305,31 +305,20 @@ def temp_account(sandbox: SandboxProxy) -> Account:
     return sandbox.create_random_account()
 
 
-@pytest.fixture
-def create_account(sandbox: SandboxProxy) -> Callable[[Optional[str]], Account]:
-    """
-    Factory fixture to create accounts on demand.
-
-    This fixture returns a function that creates new accounts,
-    allowing tests to create accounts as needed.
-    """
-
-    def _create(name: Optional[str] = None) -> Account:
-        if name:
-            return sandbox.create_account(name)
-        else:
-            return sandbox.create_random_account()
-
-    return _create
+# For backward compatibility
+sandbox_alice = localnet_alice_account
+sandbox_bob = localnet_bob_account
+temp_account = localnet_temp_account
 
 
+# Helper function (not a fixture)
 def compile_contract(
     contract_path: Union[str, Path], single_file: bool = False
 ) -> Path:
     """
     Compile a contract and return the WASM path.
 
-    This function is a thin wrapper around the compiler_func
+    This function is a thin wrapper around the compiler functionality
     from the compiler module, providing a simple interface for
     compiling contracts in tests.
 
