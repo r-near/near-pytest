@@ -61,7 +61,6 @@ You can choose between two testing approaches:
 
 ```python
 import pytest
-from near_pytest.fixtures import sandbox, localnet_alice_account, localnet_bob_account
 from near_pytest.compiler import compile_contract
 
 @pytest.fixture(scope="session")
