@@ -24,7 +24,7 @@ import pytest
 import random
 import string
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, Callable, List, TypeVar, Tuple, Generator
+from typing import Dict, Any, Optional, Union, List, TypeVar, Tuple, Generator
 
 from .sandbox import SandboxManager
 from .client import NearClient
@@ -231,6 +231,7 @@ class SandboxProxy:
 
 
 # Main fixtures for pytest
+
 
 @pytest.fixture(scope="session")
 def sandbox() -> Generator[SandboxProxy, None, None]:

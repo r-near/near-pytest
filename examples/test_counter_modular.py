@@ -7,7 +7,8 @@ simple counter contract with clean, readable tests.
 
 import pytest
 from pathlib import Path
-from near_pytest import compile_contract # Helper method, you can use nearc
+from near_pytest import compile_contract  # Helper method, you can use nearc
+
 
 @pytest.fixture(scope="session")
 def counter_wasm():
@@ -46,7 +47,9 @@ def fresh_counter(sandbox, counter_wasm, localnet_temp_account):
     """
     # Deploy and initialize the contract in one step
     contract = sandbox.deploy(
-        wasm_path=counter_wasm, account=localnet_temp_account, init_args={"starting_count": 0}
+        wasm_path=counter_wasm,
+        account=localnet_temp_account,
+        init_args={"starting_count": 0},
     )
 
     return contract
