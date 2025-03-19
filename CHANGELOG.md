@@ -1,6 +1,29 @@
 # CHANGELOG
 
 
+## v0.6.0 (2025-03-19)
+
+### Features
+
+- Add modular fixtures approach for more intuitive pytest-native testing
+  ([#5](https://github.com/r-near/near-pytest/pull/5),
+  [`03e4547`](https://github.com/r-near/near-pytest/commit/03e4547b24cdfc9a67159e9118376d5436d7e89f))
+
+* feat: add modular fixtures for more intuitive pytest-native testing
+
+* Minor cleanup
+
+* Linting
+
+* Safer compiler
+
+* localnet
+
+* Add entrypoint for auto-loading fixtures
+
+* Simplify README
+
+
 ## v0.5.4 (2025-03-14)
 
 ### Bug Fixes
