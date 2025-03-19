@@ -1,10 +1,13 @@
 import near  # type: ignore
+import json
 
 
 # Store the count in contract storage
 @near.export
-def new(starting_count=0):
+def new():
     """Initialize the contract with a starting count."""
+    args = json.loads(near.input())
+    starting_count = args.get("starting_count", 0)
     near.storage_write("count", str(starting_count))
     near.value_return("true")
     return True
@@ -39,8 +42,10 @@ def get_count():
 
 
 @near.export
-def reset(value=0):
+def reset():
     """Reset the counter to the given value."""
+    args = json.loads(near.input())
+    value = args.get("value", 0)
     near.storage_write("count", str(value))
     near.value_return(str(value))
     return value

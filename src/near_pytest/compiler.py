@@ -1,8 +1,5 @@
-# near_pytest/compiler.py
 import os
 import hashlib
-import importlib.util
-import subprocess
 from pathlib import Path
 
 # Import logger
@@ -44,59 +41,33 @@ def compile_contract(contract_path, single_file=False):
     logger.info(f"Compiling contract: {contract_path}")
 
     try:
-        # Try to import nearc
-        if importlib.util.find_spec("nearc") is not None:
-            import nearc
-            from nearc.builder import compile_contract as nearc_compile
+        import nearc
+        from nearc.builder import compile_contract as nearc_compile
 
-            output_path = cache_dir / wasm_filename
-            assets_dir = Path(nearc.__file__).parent
-            venv_path = _get_venv_path()
+        output_path = cache_dir / wasm_filename
+        assets_dir = Path(nearc.__file__).parent
+        venv_path = _get_venv_path()
 
-            logger.debug("Using nearc Python module for compilation")
-            logger.debug(f"Output path: {output_path}")
-            logger.debug(f"Assets directory: {assets_dir}")
-            logger.debug(f"Virtual environment path: {venv_path}")
+        logger.debug("Using nearc Python module for compilation")
+        logger.debug(f"Output path: {output_path}")
+        logger.debug(f"Assets directory: {assets_dir}")
+        logger.debug(f"Virtual environment path: {venv_path}")
 
-            success = nearc_compile(
-                contract_path=contract_path,
-                output_path=output_path,
-                venv_path=venv_path,
-                assets_dir=assets_dir,
-                rebuild=False,
-                single_file=single_file,
-            )
+        success = nearc_compile(
+            contract_path=contract_path,
+            output_path=output_path,
+            venv_path=venv_path,
+            assets_dir=assets_dir,
+            rebuild=False,
+            single_file=single_file,
+        )
 
-            if not success or not output_path.exists():
-                logger.error(f"Failed to compile contract: {contract_path}")
-                raise CompilerError(f"Failed to compile contract: {contract_path}")
+        if not success or not output_path.exists():
+            logger.error(f"Failed to compile contract: {contract_path}")
+            raise CompilerError(f"Failed to compile contract: {contract_path}")
 
-            logger.success(f"Contract compiled to: {output_path}")
-            return output_path
-        else:
-            # Fall back to command
-            logger.debug("nearc Python module not found, falling back to command line")
-            output_path = cache_dir / wasm_filename
-
-            logger.info(
-                f"Compiling with command: nearc {contract_path} -o {output_path}"
-            )
-            result = subprocess.run(
-                ["uvx", "nearc", str(contract_path), "-o", str(output_path)],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-
-            if not output_path.exists():
-                stderr = result.stderr.strip()
-                logger.error(f"Failed to compile contract: {stderr}")
-                raise CompilerError(f"Failed to compile contract: {stderr}")
-
-            logger.success(f"Contract compiled to: {output_path}")
-            return output_path
-
+        logger.success(f"Contract compiled to: {output_path}")
+        return output_path
     except Exception as e:
         logger.error(f"Compilation error: {str(e)}")
         raise CompilerError(f"Failed to compile contract: {str(e)}")
