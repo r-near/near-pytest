@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.1 (2025-03-20)
+
+### Bug Fixes
+
+- **models**: Proper handling for view methods
+  ([`b4cb6e9`](https://github.com/r-near/near-pytest/commit/b4cb6e99dc801fae61468d09dd74ab4bcc4559bf))
+
+
 ## v0.7.0 (2025-03-20)
 
 ### Features
