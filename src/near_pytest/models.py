@@ -25,7 +25,7 @@ class ContractResponse:
 
     @classmethod
     def from_result(
-        cls, result: Union[str, TransactionResult], log_prefix: str = "Contract"
+        cls, result: Union[str, int, TransactionResult], log_prefix: str = "Contract"
     ) -> "ContractResponse":
         """Create a ContractResponse from a raw result.
 
@@ -39,7 +39,7 @@ class ContractResponse:
         Raises:
             ContractCallError: If the contract call failed
         """
-        if isinstance(result, str):
+        if isinstance(result, str) or isinstance(result, int):
             return cls(result)
 
         # Process logs
