@@ -38,6 +38,8 @@ A pytest-native framework for testing NEAR smart contracts in Python.
 
 🧠 **Smart caching** - Automatically caches compiled contracts for faster subsequent runs
 
+✨ **Requests-like Response API** - Familiar interface for handling contract responses with `.json()` method and `.text` property
+
 ## Installation
 
 ```bash
@@ -127,7 +129,7 @@ class TestCounter(NearTestCase):
     def test_increment(self):
         # Call contract method
         result = self.counter_contract.call("increment", {})
-        assert int(result) == 1
+        assert int(result.text) == 1
 ```
 
 ## Examples
@@ -160,6 +162,22 @@ def test_increment_fresh(fresh_counter, sandbox_alice):
     # Increment again
     result = fresh_counter.call("increment").as_transaction(sandbox_alice)
     assert int(result) == 2
+```
+
+### JSON Response Example
+
+```python
+def test_json_response(self):
+    # Call a method that returns JSON data
+    response = self.contract.call("get_user_data", {"user_id": "alice"})
+    
+    # Parse the JSON response
+    data = response.json()
+    
+    # Assert on the parsed data
+    assert data["name"] == "Alice"
+    assert data["score"] == 100
+    assert "created_at" in data
 ```
 
 ## Key Concepts
@@ -260,6 +278,21 @@ cls.save_state()
 self.reset_state()
 ```
 
+### 7. ContractResponse
+
+Contract call responses are wrapped in a `ContractResponse` object that provides a familiar interface similar to Python's `requests` library:
+
+```python
+# Get the raw text response
+text_content = response.text
+
+# Parse JSON response
+json_data = response.json()
+
+# String representation
+str_value = str(response)  # Same as response.text
+```
+
 ## API Reference
 
 ### Modular Fixtures
@@ -339,12 +372,43 @@ This distinction allows for future expansion to other networks like testnet or m
 - `call_as(account, method_name, args=None, amount=0, gas=None)`: Call as another account
 - `view(method_name, args=None)`: Call a view method
 
+### ContractResponse
+
+A wrapper for contract call responses that provides a familiar interface for handling response data.
+
+#### Properties
+
+- `text`: Get the raw text response as a string
+- `transaction_result`: Access the underlying transaction result (if available)
+
+#### Methods
+
+- `json()`: Parse the response as JSON and return the resulting Python object
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
 ## Environment Variables
 
 You can customize the behavior of near-pytest using these environment variables:
 
 - `NEAR_PYTEST_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
 - `NEAR_SANDBOX_HOME`: Specify a custom home directory for the sandbox
+
+## Architecture
+
+near-pytest consists of several core components:
+
+- **SandboxManager**: Handles the NEAR sandbox process lifecycle
+- **NearClient**: Manages communication with the NEAR RPC interface 
+- **Account/Contract**: Simplified models for interacting with the blockchain
+- **ContractResponse**: Wraps contract call responses with a user-friendly API
+- **NearTestCase**: Base class that ties everything together for testing
 
 ## Troubleshooting
 

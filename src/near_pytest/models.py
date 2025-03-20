@@ -1,12 +1,103 @@
-from typing import Dict, Any, Optional, TYPE_CHECKING, List, Union, Tuple, cast
+from typing import Dict, Any, Optional, TYPE_CHECKING, List, Union, Tuple, TypeVar
 from py_near.constants import DEFAULT_ATTACHED_GAS
 from py_near.models import TransactionResult
 from .utils.logger import logger
 import base64
+import json
 
 # Prevent circular imports while still enabling type checking
 if TYPE_CHECKING:
     from .client import NearClient
+
+T = TypeVar("T")
+
+
+class ContractResponse:
+    """Wrapper for contract call responses that adds additional functionality like JSON parsing.
+
+    This class encapsulates the response processing logic and provides a clean API for
+    interacting with contract call results.
+
+    Attributes:
+        value: The decoded string value from the contract call
+        transaction_result: The full transaction result if available
+    """
+
+    @classmethod
+    def from_result(
+        cls, result: Union[str, int, TransactionResult], log_prefix: str = "Contract"
+    ) -> "ContractResponse":
+        """Create a ContractResponse from a raw result.
+
+        Args:
+            result: Either a string result or a TransactionResult
+            log_prefix: Prefix for log messages
+
+        Returns:
+            A new ContractResponse instance
+
+        Raises:
+            ContractCallError: If the contract call failed
+        """
+        if isinstance(result, str) or isinstance(result, int):
+            return cls(result)
+
+        # Process logs
+        logs: List[str] = []
+        for ro in result.receipt_outcome:
+            logs.extend(ro.logs)
+        if logs:
+            logger.info(f"{log_prefix} Logs:")
+            logger.info("\n".join(logs))
+
+        status = result.status
+        if "SuccessValue" in status:
+            parsed_value = base64.b64decode(status["SuccessValue"]).decode("utf-8")
+            return cls(parsed_value, result)
+        else:
+            raise ContractCallError("Error calling function", result)
+
+    def __init__(
+        self,
+        value: Union[str, int],
+        transaction_result: Optional[TransactionResult] = None,
+    ):
+        """Initialize a ContractResponse.
+
+        Args:
+            value: The string value from the contract call
+            transaction_result: The full transaction result if available
+        """
+        self.value = value
+        self.transaction_result = transaction_result
+
+    def __str__(self) -> str:
+        """String representation of the response.
+
+        Returns:
+            The string value from the contract call
+        """
+        return str(self.value)
+
+    @property
+    def text(self) -> str:
+        """Get the response content as a string.
+
+        Returns:
+            The string value from the contract call
+        """
+        return str(self.value)
+
+    def json(self) -> Any:
+        """Parse the response value as JSON.
+
+        Returns:
+            The parsed JSON object.
+
+        Raises:
+            json.JSONDecodeError: If the response is not valid JSON.
+        """
+        return json.loads(str(self.value))
 
 
 class ContractCallError(Exception):
@@ -63,8 +154,6 @@ class ContractCallError(Exception):
             if receipt_errors:
                 error_info["receipt_errors"] = receipt_errors
 
-        import json
-
         return json.dumps(error_info, indent=2, default=str)
 
 
@@ -91,7 +180,7 @@ class Account:
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
         return_full_result: bool = False,
-    ) -> Union[str, Tuple[str, TransactionResult]]:
+    ) -> Union[ContractResponse, Tuple[ContractResponse, Optional[TransactionResult]]]:
         """Call a contract method.
 
         Args:
@@ -103,7 +192,7 @@ class Account:
             return_full_result: Whether to return both the parsed value and full result
 
         Returns:
-            Either the parsed result as a string, or a tuple of (parsed_result, full_result)
+            Either the parsed result as a ContractResponse, or a tuple of (parsed_result, full_result)
 
         Raises:
             ContractCallError: If the contract call fails
@@ -112,7 +201,10 @@ class Account:
             self.account_id, contract_id, method_name, args, amount, gas
         )
 
-        return self._process_call_result(result, return_full_result)
+        response = ContractResponse.from_result(result, log_prefix="Account")
+        return (
+            (response, response.transaction_result) if return_full_result else response
+        )
 
     def view_contract(
         self, contract_id: str, method_name: str, args: Optional[Dict[str, Any]] = None
@@ -140,43 +232,6 @@ class Account:
         """
         return self.client.deploy_contract(self.account_id, wasm_file)
 
-    def _process_call_result(
-        self, result: Union[str, TransactionResult], return_full_result: bool = False
-    ) -> Union[str, Tuple[str, TransactionResult]]:
-        """Process the result of a contract call.
-
-        Args:
-            result: The result from the client call
-            return_full_result: Whether to return both parsed value and full result
-
-        Returns:
-            Either the parsed result as a string, or a tuple of (parsed_result, full_result)
-
-        Raises:
-            ContractCallError: If the contract call failed
-        """
-        if isinstance(result, str):
-            return (
-                (result, cast(TransactionResult, None))
-                if return_full_result
-                else result
-            )
-
-        # Print contract logs
-        logs: List[str] = []
-        for ro in result.receipt_outcome:
-            logs.extend(ro.logs)
-        if logs:
-            logger.info("Contract Logs:")
-            logger.info("\n".join(logs))
-
-        status = result.status
-        if "SuccessValue" in status:
-            parsed_value = base64.b64decode(status["SuccessValue"]).decode("utf-8")
-            return (parsed_value, result) if return_full_result else parsed_value
-        else:
-            raise ContractCallError("Error calling function", result)
-
 
 class Contract:
     """A simplified contract model for interacting with NEAR smart contracts.
@@ -200,7 +255,7 @@ class Contract:
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
         return_full_result: bool = False,
-    ) -> Union[str, Tuple[str, TransactionResult]]:
+    ) -> Union[ContractResponse, Tuple[ContractResponse, Optional[TransactionResult]]]:
         """Call the contract as itself.
 
         Args:
@@ -211,7 +266,7 @@ class Contract:
             return_full_result: Whether to return both the parsed value and full result
 
         Returns:
-            Either the parsed result as a string, or a tuple of (parsed_result, full_result)
+            Either the parsed result as a ContractResponse, or a tuple of (parsed_result, full_result)
 
         Raises:
             ContractCallError: If the contract call fails
@@ -220,7 +275,10 @@ class Contract:
             self.account_id, self.account_id, method_name, args, amount, gas
         )
 
-        return self._process_call_result(result, return_full_result)
+        response = ContractResponse.from_result(result)
+        return (
+            (response, response.transaction_result) if return_full_result else response
+        )
 
     def call_as(
         self,
@@ -230,7 +288,7 @@ class Contract:
         amount: int = 0,
         gas: Optional[int] = DEFAULT_ATTACHED_GAS,
         return_full_result: bool = False,
-    ) -> Union[str, Tuple[str, TransactionResult]]:
+    ) -> Union[ContractResponse, Tuple[ContractResponse, Optional[TransactionResult]]]:
         """Call the contract as a different account.
 
         Args:
@@ -242,7 +300,7 @@ class Contract:
             return_full_result: Whether to return both the parsed value and full result
 
         Returns:
-            Either the parsed result as a string, or a tuple of (parsed_result, full_result)
+            Either the parsed result as a ContractResponse, or a tuple of (parsed_result, full_result)
 
         Raises:
             ContractCallError: If the contract call fails
@@ -251,9 +309,14 @@ class Contract:
             account.account_id, self.account_id, method_name, args, amount, gas
         )
 
-        return self._process_call_result(result, return_full_result)
+        response = ContractResponse.from_result(result)
+        return (
+            (response, response.transaction_result) if return_full_result else response
+        )
 
-    def view(self, method_name: str, args: Optional[Dict[str, Any]] = None) -> Any:
+    def view(
+        self, method_name: str, args: Optional[Dict[str, Any]] = None
+    ) -> ContractResponse:
         """Call a view method on the contract.
 
         Args:
@@ -263,37 +326,5 @@ class Contract:
         Returns:
             The result of the view method call
         """
-        return self.client.view_function(self.account_id, method_name, args)
-
-    def _process_call_result(
-        self, result: Union[str, TransactionResult], return_full_result: bool = False
-    ) -> Union[str, Tuple[str, TransactionResult]]:
-        """Process the result of a contract call.
-
-        Args:
-            result: The result from the client call
-            return_full_result: Whether to return both parsed value and full result
-
-        Returns:
-            Either the parsed result as a string, or a tuple of (parsed_result, full_result)
-
-        Raises:
-            ContractCallError: If the contract call failed
-        """
-        if isinstance(result, str):
-            return (
-                (result, cast(TransactionResult, None))
-                if return_full_result
-                else result
-            )
-
-        # Print contract logs
-        logger.info("Contract Logs:")
-        logger.info("\n".join(result.logs))
-
-        status = result.status
-        if "SuccessValue" in status:
-            parsed_value = base64.b64decode(status["SuccessValue"]).decode("utf-8")
-            return (parsed_value, result) if return_full_result else parsed_value
-        else:
-            raise ContractCallError("Error calling function", result)
+        result = self.client.view_function(self.account_id, method_name, args)
+        return ContractResponse.from_result(result)

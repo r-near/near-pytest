@@ -37,23 +37,23 @@ class TestCounter(NearTestCase):
     def test_increment(self):
         # Call contract method
         result = self.counter_contract.call("increment", {})
-        assert int(result) == 1
+        assert int(result.text) == 1
 
         # Call again to verify state persistence
         result = self.counter_contract.call("increment", {})
-        assert int(result) == 2
+        assert int(result.text) == 2
 
     def test_increment_as_alice(self):
         # Each test starts with fresh state
         result = self.counter_contract.call_as(self.alice, "increment", {})
-        assert int(result) == 1
+        assert int(result.text) == 1
 
     def test_get_count(self):
         # Call view method
         result = self.counter_contract.view("get_count", {})
-        assert int(result) == 0
+        assert int(result.text) == 0
 
         # Call increment then view again
         self.counter_contract.call("increment", {})
         result = self.counter_contract.view("get_count", {})
-        assert int(result) == 1
+        assert int(result.text) == 1
