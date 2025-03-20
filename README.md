@@ -128,24 +128,8 @@ class TestCounter(NearTestCase):
 
     def test_increment(self):
         # Call contract method
-        result = self.contract.call("my_function", {"param": "value"})
-        assert result.text == "expected_result"
-        
-        # If the result is JSON, you can parse it directly
-        if result.text.startswith("{") or result.text.startswith("["):
-            data = result.json()
-            assert data["some_field"] == "expected_value"
-        
-    def test_as_alice(self):
-        # Call as another account
-        result = self.contract.call_as(self.alice, "my_function", {"param": "value"})
-        assert result.text == "expected_result"
-```
-
-### 2. Run your tests
-
-```bash
-pytest test_my_contract.py -v
+        result = self.counter_contract.call("increment", {})
+        assert int(result.text) == 1
 ```
 
 ## Examples
@@ -293,8 +277,6 @@ sandbox.reset_state(state)
 cls.save_state()
 self.reset_state()
 ```
-
-This state management is what makes near-pytest tests run significantly faster than traditional approaches that need to re-deploy the contract and accounts for each test.
 
 ### 7. ContractResponse
 
