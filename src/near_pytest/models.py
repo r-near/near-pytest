@@ -58,7 +58,9 @@ class ContractResponse:
             raise ContractCallError("Error calling function", result)
 
     def __init__(
-        self, value: str, transaction_result: Optional[TransactionResult] = None
+        self,
+        value: Union[str, int],
+        transaction_result: Optional[TransactionResult] = None,
     ):
         """Initialize a ContractResponse.
 
@@ -75,7 +77,7 @@ class ContractResponse:
         Returns:
             The string value from the contract call
         """
-        return self.value
+        return str(self.value)
 
     @property
     def text(self) -> str:
@@ -84,7 +86,7 @@ class ContractResponse:
         Returns:
             The string value from the contract call
         """
-        return self.value
+        return str(self.value)
 
     def json(self) -> Any:
         """Parse the response value as JSON.
@@ -95,7 +97,7 @@ class ContractResponse:
         Raises:
             json.JSONDecodeError: If the response is not valid JSON.
         """
-        return json.loads(self.value)
+        return json.loads(str(self.value))
 
 
 class ContractCallError(Exception):
@@ -312,7 +314,9 @@ class Contract:
             (response, response.transaction_result) if return_full_result else response
         )
 
-    def view(self, method_name: str, args: Optional[Dict[str, Any]] = None) -> Any:
+    def view(
+        self, method_name: str, args: Optional[Dict[str, Any]] = None
+    ) -> ContractResponse:
         """Call a view method on the contract.
 
         Args:

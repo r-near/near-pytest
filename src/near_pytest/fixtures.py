@@ -24,11 +24,16 @@ import pytest
 import random
 import string
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, List, TypeVar, Tuple, Generator
+from typing import Dict, Any, Optional, Union, List, TypeVar, Generator
 
 from .sandbox import SandboxManager
 from .client import NearClient
-from .models import Account, Contract, ContractCallError, TransactionResult
+from .models import (
+    Account,
+    Contract,
+    ContractCallError,
+    ContractResponse,
+)
 from .compiler import compile_contract as compiler_func
 from .utils import logger
 
@@ -61,22 +66,31 @@ class ContractCall:
 
     def as_transaction(
         self, account: Account, amount: int = 0, gas: Optional[int] = None
-    ) -> Union[str, Tuple[str, TransactionResult]]:
+    ) -> ContractResponse:
         """Execute the call as a transaction from the given account."""
         try:
-            return self.contract.call_as(
-                account, self.method_name, self.args, amount, gas
+            result = self.contract.call_as(
+                account,
+                self.method_name,
+                self.args,
+                amount,
+                gas,
+                return_full_result=False,
             )
+            if isinstance(result, tuple):
+                return result[0]
+            return result
         except Exception as e:
             logger.error(f"Transaction failed: {self.method_name}({self.args})")
             raise ContractCallError(
                 f"Failed to call {self.method_name}: {str(e)}", None
             ) from e
 
-    def as_view(self) -> Any:
+    def as_view(self) -> ContractResponse:
         """Execute the call as a view method."""
         try:
-            return self.contract.view(self.method_name, self.args)
+            result = self.contract.view(self.method_name, self.args)
+            return result
         except Exception as e:
             logger.error(f"View call failed: {self.method_name}({self.args})")
             raise ContractCallError(

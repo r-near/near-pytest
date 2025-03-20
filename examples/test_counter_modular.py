@@ -58,29 +58,29 @@ def fresh_counter(sandbox, counter_wasm, localnet_temp_account):
 def test_increment_shared(shared_counter, localnet_alice_account):
     """Test incrementing the shared counter as Alice."""
     # Get initial count
-    initial_count = int(shared_counter.call("get_count").as_view())
+    initial_count = int(shared_counter.call("get_count").as_view().text)
 
     # Increment as Alice
     result = shared_counter.call("increment").as_transaction(localnet_alice_account)
 
     # Assert the result is as expected
-    assert int(result) == initial_count + 1
+    assert int(result.text) == initial_count + 1
 
     # Verify state change persisted
-    new_count = int(shared_counter.call("get_count").as_view())
+    new_count = int(shared_counter.call("get_count").as_view().text)
     assert new_count == initial_count + 1
 
 
 def test_decrement_shared(shared_counter, localnet_bob_account):
     """Test decrementing the shared counter as Bob."""
     # Get initial count (which includes changes from previous tests)
-    initial_count = int(shared_counter.call("get_count").as_view())
+    initial_count = int(shared_counter.call("get_count").as_view().text)
 
     # Decrement as Bob
     result = shared_counter.call("decrement").as_transaction(localnet_bob_account)
 
     # Assert the result is as expected
-    assert int(result) == initial_count - 1
+    assert int(result.text) == initial_count - 1
 
 
 def test_increment_fresh(fresh_counter, localnet_alice_account):
@@ -92,11 +92,11 @@ def test_increment_fresh(fresh_counter, localnet_alice_account):
     """
     # This always starts with count=0 because we use a fresh contract
     result = fresh_counter.call("increment").as_transaction(localnet_alice_account)
-    assert int(result) == 1
+    assert int(result.text) == 1
 
     # Increment again
     result = fresh_counter.call("increment").as_transaction(localnet_alice_account)
-    assert int(result) == 2
+    assert int(result.text) == 2
 
 
 def test_multiple_accounts(fresh_counter, sandbox):
@@ -117,7 +117,7 @@ def test_multiple_accounts(fresh_counter, sandbox):
     fresh_counter.call("increment").as_transaction(user2)
 
     # Check final count
-    count = fresh_counter.call("get_count").as_view()
+    count = fresh_counter.call("get_count").as_view().text
     assert int(count) == 3
 
 
@@ -131,7 +131,7 @@ def test_reset(fresh_counter, localnet_bob_account):
     fresh_counter.call("reset", value=5).as_transaction(localnet_bob_account)
 
     # Verify reset worked
-    count = fresh_counter.call("get_count").as_view()
+    count = fresh_counter.call("get_count").as_view().text
     assert int(count) == 5
 
 
@@ -156,12 +156,12 @@ def test_state_persistence(sandbox, counter_wasm):
     contract.call("increment").as_transaction(account)
 
     # Verify count is now 12
-    count = contract.call("get_count").as_view()
+    count = contract.call("get_count").as_view().text
     assert int(count) == 12
 
     # Reset to initial state
     sandbox.reset_state(initial_state)
 
     # Verify count is back to 10
-    count = contract.call("get_count").as_view()
+    count = contract.call("get_count").as_view().text
     assert int(count) == 10
