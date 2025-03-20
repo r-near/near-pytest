@@ -1,6 +1,26 @@
 # CHANGELOG
 
 
+## v0.7.0 (2025-03-20)
+
+### Features
+
+- Add requests-like API for contract responses ([#3](https://github.com/r-near/near-pytest/pull/3),
+  [`5c44755`](https://github.com/r-near/near-pytest/commit/5c4475586f29eda7b7fabf4cb2cc2d449f259306))
+
+* feat: Add requests-like API for contract responses
+
+* Update tests
+
+* Return a contract response here as well
+
+* Fix bug with ints
+
+* Cleanup
+
+* Linting and types
+
+
 ## v0.6.0 (2025-03-19)
 
 ### Features
